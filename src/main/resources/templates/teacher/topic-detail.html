@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Detail</title>
+</head>
+<body>
+<a href="/teacher/topics">Back to My Topics</a>
+
+<h1 th:text="${topic.title}"></h1>
+
+<p th:if="${success}" th:text="${success}" style="color:green"></p>
+<p th:if="${error}"   th:text="${error}"   style="color:red"></p>
+
+<table border="1" cellpadding="8">
+    <tr><td>Status</td><td th:text="${topic.status}"></td></tr>
+    <tr><td>Category</td><td th:text="${topic.categoryName}"></td></tr>
+    <tr><td>Max Students</td><td th:text="${topic.maxStudents}"></td></tr>
+    <tr><td>Skills</td><td th:text="${topic.skills}"></td></tr>
+    <tr><td>Keywords</td><td th:text="${topic.keywords}"></td></tr>
+    <tr><td>Description</td><td th:text="${topic.description}"></td></tr>
+    <tr><td>Created</td><td th:text="${topic.createTime}"></td></tr>
+</table>
+
+<br>
+<a th:href="@{/teacher/topics/{id}/edit(id=${topic.topicId})}">Edit</a>
+
+<!-- 状态操作按钮 -->
+<form th:if="${topic.status == 'Draft'}"
+      th:action="@{/teacher/topics/{id}/publish(id=${topic.topicId})}"
+      method="post" style="display:inline">
+    <button type="submit">Publish</button>
+</form>
+
+<form th:if="${topic.status == 'Open'}"
+      th:action="@{/teacher/topics/{id}/close(id=${topic.topicId})}"
+      method="post" style="display:inline">
+    <button type="submit">Close</button>
+</form>
+
+<form th:if="${topic.status == 'Closed'}"
+      th:action="@{/teacher/topics/{id}/archive(id=${topic.topicId})}"
+      method="post" style="display:inline">
+    <button type="submit">Archive</button>
+</form>
+</body>
+</html>

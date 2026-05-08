@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Detail</title>
+</head>
+<body>
+<a href="/project/topics">Back to Topics</a>
+
+<h1 th:text="${topic.title}"></h1>
+
+<table border="1" cellpadding="8">
+    <tr><td>Supervisor</td><td th:text="${topic.teacherName}"></td></tr>
+    <tr><td>Category</td><td th:text="${topic.categoryName}"></td></tr>
+    <tr><td>Status</td><td th:text="${topic.status}"></td></tr>
+    <tr><td>Max Students</td><td th:text="${topic.maxStudents}"></td></tr>
+    <tr><td>Skills</td><td th:text="${topic.skills}"></td></tr>
+    <tr><td>Keywords</td><td th:text="${topic.keywords}"></td></tr>
+    <tr><td>Description</td><td th:text="${topic.description}"></td></tr>
+</table>
+</body>
+</html>

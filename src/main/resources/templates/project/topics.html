@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Topics</title>
+</head>
+<body>
+<h1>Available Topics</h1>
+
+<table border="1" cellpadding="8">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Supervisor</th>
+        <th>Category</th>
+        <th>Max Students</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="topic : ${topics}">
+        <td th:text="${topic.title}"></td>
+        <td th:text="${topic.teacherName}"></td>
+        <td th:text="${topic.categoryName}"></td>
+        <td th:text="${topic.maxStudents}"></td>
+        <td>
+            <a th:href="@{/project/topics/{id}(id=${topic.topicId})}">View</a>
+        </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(topics)}">
+        <td colspan="5">No topics available.</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

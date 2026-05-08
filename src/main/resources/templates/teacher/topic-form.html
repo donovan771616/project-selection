@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Form</title>
+</head>
+<body>
+<h1 th:text="${topicForm.topicId == null} ? 'New Topic' : 'Edit Topic'"></h1>
+
+<form th:action="${topicForm.topicId == null} ? '/teacher/topics' : '/teacher/topics/' + topicForm.topicId + '/edit'"
+      th:object="${topicForm}" method="post">
+
+    <p>
+        <label>Title *<br>
+            <input type="text" th:field="*{title}" required>
+        </label>
+    </p>
+    <p>
+        <label>Description *<br>
+            <textarea th:field="*{description}" rows="5" required></textarea>
+        </label>
+    </p>
+    <p>
+        <label>Skills<br>
+            <input type="text" th:field="*{skills}">
+        </label>
+    </p>
+    <p>
+        <label>Keywords<br>
+            <input type="text" th:field="*{keywords}">
+        </label>
+    </p>
+    <p>
+        <label>Category<br>
+            <select th:field="*{categoryId}">
+                <option value="">Select category</option>
+                <option th:each="c : ${categories}"
+                        th:value="${c.categoryId}"
+                        th:text="${c.categoryName}"></option>
+            </select>
+        </label>
+    </p>
+    <p>
+        <label>Max Students<br>
+            <input type="number" th:field="*{maxStudents}" min="1">
+        </label>
+    </p>
+
+    <button type="submit">Save Draft</button>
+    <a href="/teacher/topics">Cancel</a>
+</form>
+</body>
+</html>

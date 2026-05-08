@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Topics</title>
+</head>
+<body>
+<h1>My Topics</h1>
+<a href="/teacher/topics/new">New Topic</a>
+
+<p th:if="${success}" th:text="${success}" style="color:green"></p>
+<p th:if="${error}"   th:text="${error}"   style="color:red"></p>
+
+<table border="1" cellpadding="8">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Status</th>
+        <th>Max Students</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="topic : ${topics}">
+        <td th:text="${topic.title}"></td>
+        <td th:text="${topic.categoryName}"></td>
+        <td th:text="${topic.status}"></td>
+        <td th:text="${topic.maxStudents}"></td>
+        <td>
+            <a th:href="@{/teacher/topics/{id}(id=${topic.topicId})}">View</a>
+            <a th:href="@{/teacher/topics/{id}/edit(id=${topic.topicId})}">Edit</a>
+        </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(topics)}">
+        <td colspan="5">No topics yet. <a href="/teacher/topics/new">Create one</a>.</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
