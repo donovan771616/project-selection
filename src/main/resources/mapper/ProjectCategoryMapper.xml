@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cpt202.projectselection.mapper.ProjectCategoryMapper">
+    <select id="selectCategoryById" resultType="ProjectCategory">
+        select category_id, category_name, parent_id, order_num, status, del_flag, create_by, create_time, update_by, update_time
+        from project_category
+        where category_id = #{categoryId} and del_flag = '0'
+    </select>
+
+    <select id="selectActiveCategories" resultType="ProjectCategory">
+        select category_id, category_name, parent_id, order_num, status, del_flag, create_by, create_time, update_by, update_time
+        from project_category
+        where status = '0' and del_flag = '0'
+        order by parent_id, order_num, category_name
+    </select>
+
+    <select id="selectAllCategories" resultType="ProjectCategory">
+        select category_id, category_name, parent_id, order_num, status, del_flag, create_by, create_time, update_by, update_time
+        from project_category
+        where del_flag = '0'
+        order by parent_id, order_num, category_name
+    </select>
+
+    <insert id="insertCategory" useGeneratedKeys="true" keyProperty="categoryId">
+        insert into project_category (category_name, parent_id, order_num, status, del_flag, create_by, create_time)
+        values (#{categoryName}, #{parentId}, #{orderNum}, #{status}, '0', #{createBy}, now())
+    </insert>
+
+    <update id="updateCategory">
+        update project_category
+        set category_name = #{categoryName},
+            parent_id = #{parentId},
+            order_num = #{orderNum},
+            status = #{status},
+            update_by = #{updateBy},
+            update_time = now()
+        where category_id = #{categoryId}
+    </update>
+
+    <update id="deleteCategory">
+        update project_category
+        set del_flag = '2', update_by = 'admin', update_time = now()
+        where category_id = #{categoryId}
+    </update>
+
+    <select id="countTopicsByCategoryId" resultType="int">
+        select count(1) from project_topic where category_id = #{categoryId} and del_flag = '0'
+    </select>
+</mapper>
