@@ -1,0 +1,46 @@
+spring:
+  profiles:
+    active: dev
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+  web:
+    resources:
+      cache:
+        period: 0
+  mail:
+    host: smtp.163.com
+    port: 465
+    username: unistatus@163.com
+    password: ZPnvQhep5vH3ddSN
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://120.26.210.159:3306/cpt202_project_selection?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+#    url: jdbc:mysql://127.0.0.1:3306/cpt202_project_selection?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: Group15Cpt202
+
+logging:
+  level:
+    com.cpt202.projectselection.mapper: debug
+
+
+
+server:
+  port: 8080
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.cpt202.projectselection.domain
+  configuration:
+    map-underscore-to-camel-case: true

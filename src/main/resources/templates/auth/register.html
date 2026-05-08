@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Project Selection System</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        /* Enhanced Register Page Styles */
+        .auth-page {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%), radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 50%), radial-gradient(circle at 90% 80%, rgba(22, 163, 74, 0.15) 0%, transparent 50%);
+        }
+        
+        .auth-panel {
+            width: min(520px, 100%);
+            padding: 40px 36px;
+            backdrop-filter: blur(24px);
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        
+        .auth-header h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .auth-header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 15px;
+        }
+        
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .role-option {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 18px 12px;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface-soft);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+        }
+        
+        .role-option:hover {
+            border-color: rgba(37, 99, 235, 0.4);
+            background: rgba(37, 99, 235, 0.06);
+            transform: translateY(-2px);
+        }
+        
+        .role-option.active {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(124, 58, 237, 0.08) 100%);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+        }
+        
+        .role-option input {
+            display: none;
+        }
+        
+        .role-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            border-radius: 14px;
+            font-size: 26px;
+            line-height: 1;
+            transition: all 0.3s ease;
+        }
+        
+        .role-option[data-role="student"] .role-icon {
+            background: linear-gradient(135deg, rgba(8, 145, 178, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%);
+        }
+        
+        .role-option[data-role="teacher"] .role-icon {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%);
+        }
+        
+        .role-option.active .role-icon {
+            transform: scale(1.1);
+        }
+        
+        .role-label {
+            font-weight: 700;
+            color: var(--text);
+            font-size: 15px;
+        }
+        
+        .role-description {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+            text-align: center;
+        }
+        
+        .form-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        
+        .form-divider::before,
+        .form-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        
+        .form-grid .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .form-row {
+            margin-bottom: 16px;
+        }
+        
+        .form-row label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .form-row label .required {
+            color: #ef4444;
+            margin-left: 3px;
+        }
+        
+        .form-row label .optional {
+            color: var(--muted);
+            font-weight: 500;
+            margin-left: 4px;
+            font-size: 13px;
+        }
+        
+        .form-row input {
+            min-height: 44px;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.2s ease;
+        }
+        
+        .form-row input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+        
+        .form-row input::placeholder {
+            color: #9ca3af;
+        }
+        
+        .form-hint {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        
+        .form-hint strong {
+            color: var(--text);
+        }
+        
+        .error {
+            margin-top: 6px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        
+        .password-strength {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .password-strength-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .password-strength-fill {
+            height: 100%;
+            width: 0;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .strength-weak { background: #ef4444; width: 33%; }
+        .strength-medium { background: #f59e0b; width: 66%; }
+        .strength-strong { background: #22c55e; width: 100%; }
+        
+        .info-box {
+            background: linear-gradient(135deg, var(--blue-soft) 0%, rgba(124, 58, 237, 0.06) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--primary-dark);
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        
+        .info-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        
+        .info-box.teacher {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(22, 163, 74, 0.05) 100%);
+            border-color: rgba(124, 58, 237, 0.2);
+            color: #5b21b6;
+        }
+        
+        .info-box.student {
+            background: linear-gradient(135deg, rgba(8, 145, 178, 0.08) 0%, rgba(37, 99, 235, 0.05) 100%);
+            border-color: rgba(8, 145, 178, 0.2);
+            color: #075985;
+        }
+        
+        .quick-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .quick-button {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .quick-button:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .quick-button.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .quick-button-group-label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+        }
+        
+        .submit-section {
+            margin-top: 24px;
+        }
+        
+        .submit-button {
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        }
+        
+        .submit-button:active {
+            transform: translateY(0);
+        }
+        
+        .submit-button .icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+        
+        .login-link a {
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .login-link a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+        
+        .terms-text {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+        
+        .terms-text a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 480px) {
+            .auth-panel {
+                padding: 32px 24px;
+            }
+            
+            .role-selector {
+                gap: 10px;
+            }
+            
+            .role-option {
+                padding: 14px 10px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="auth-page">
+    <main class="auth-panel">
+        <div class="auth-header">
+            <h1>Create Account</h1>
+            <p>Join our project selection platform today</p>
+        </div>
+        
+        <!-- Global Error Message -->
+        <div class="error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+        <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+        
+        <!-- Role Selection -->
+        <div class="role-selector">
+            <a th:href="@{/register/student}" class="role-option active">
+                <span class="role-icon">👨‍🎓</span>
+                <span class="role-label">Student</span>
+                <span class="role-description">Join projects</span>
+            </a>
+            <a th:href="@{/register/teacher}" class="role-option">
+                <span class="role-icon">👨‍🏫</span>
+                <span class="role-label">Teacher</span>
+                <span class="role-description">Create projects</span>
+            </a>
+        </div>
+        
+        <div style="text-align: center; padding: 40px 20px; color: var(--muted);">
+            <p style="font-size: 16px; margin-bottom: 20px;">Please select your role above to proceed with registration</p>
+            <p style="font-size: 14px;">You will be redirected to the appropriate registration form</p>
+        </div>
+    </main>
+</body>
+</html>

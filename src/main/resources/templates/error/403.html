@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Access denied</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="error-card">
+                <div class="error-code">403</div>
+                <h1 class="page-title">Access denied</h1>
+                <p class="page-subtitle">Your current account does not have permission to access this page.</p>
+                <div class="error-actions">
+                    <a class="button" th:href="@{/index}">Back to dashboard</a>
+                    <a class="button secondary" href="javascript:history.back()">Go back</a>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

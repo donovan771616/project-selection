@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resend activation - Project Selection</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="auth-page">
+<main class="auth-panel">
+    <h1>Resend activation</h1>
+    <p>Enter your registered email address and we will issue a new activation link.</p>
+    <div class="error" th:if="${error}" th:text="${error}"></div>
+    <form th:action="@{/activation/resend}" method="post">
+        <div class="form-row">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" th:value="${email}" required>
+        </div>
+        <div class="actions">
+            <button class="button" type="submit">Resend verification code</button>
+            <a class="button secondary" th:href="@{/login}">Back to sign in</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

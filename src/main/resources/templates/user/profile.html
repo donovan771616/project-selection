@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .profile-grid {
+            display: grid;
+            gap: 24px;
+        }
+        .profile-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+        }
+        .profile-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .profile-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .profile-card-icon.student {
+            background: var(--blue-soft);
+            color: var(--primary);
+        }
+        .profile-card-icon.teacher {
+            background: var(--violet-soft);
+            color: #7c3aed;
+        }
+        .profile-card-title h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .profile-card-title p {
+            margin: 2px 0 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .info-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            font-size: 15px;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .info-value.empty {
+            color: var(--muted);
+            font-style: italic;
+        }
+        .edit-toggle {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .edit-toggle:hover {
+            background: var(--blue-soft);
+        }
+        .edit-form {
+            display: none;
+        }
+        .edit-form.active {
+            display: block;
+        }
+        .view-mode {
+            display: block;
+        }
+        .view-mode.hidden {
+            display: none;
+        }
+        .password-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+        }
+        .password-section .form-grid {
+            max-width: 400px;
+        }
+        .password-form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .password-form-row-end {
+            align-items: flex-end;
+        }
+        .password-form-field {
+            flex: 1;
+            min-width: 200px;
+        }
+        .password-form-actions {
+            flex-shrink: 0;
+            padding-top: 22px;
+        }
+        .password-form-actions .button {
+            height: 42px;
+            padding: 0 24px;
+        }
+        .password-strength {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .password-strength-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .password-strength-fill {
+            height: 100%;
+            width: 0;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+        .strength-weak { background: #ef4444; width: 33%; }
+        .strength-medium { background: #f59e0b; width: 66%; }
+        .strength-strong { background: #22c55e; width: 100%; }
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .password-requirements li {
+            margin: 2px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+        .password-requirements li::before {
+            content: "○";
+            position: absolute;
+            left: 0;
+        }
+        .password-requirements li.valid::before {
+            content: "●";
+            color: #22c55e;
+        }
+        .password-requirements li.valid {
+            color: #166534;
+        }
+        .password-error {
+            margin-top: 6px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .password-error.hidden {
+            display: none;
+        }
+        .password-error.show {
+            display: block;
+        }
+        .server-error {
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <h1 class="page-title">Profile</h1>
+            <p class="page-subtitle">Maintain your personal information and account settings.</p>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+
+            <div class="profile-grid">
+                <!-- Student Information Card -->
+                <th:block th:if="${roleKey == 'student'}">
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <div class="profile-card-icon student">👨‍🎓</div>
+                        <div class="profile-card-title">
+                            <h3>Student Information</h3>
+                            <p>Your academic details registered in the system</p>
+                        </div>
+                        <button class="edit-toggle" onclick="toggleEdit('student-info')">Edit</button>
+                    </div>
+                    <div class="view-mode" id="student-info-view">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Student ID</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.studentNo) ? 'Not set' : userInfo.studentNo}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Grade</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.grade) ? 'Not set' : userInfo.grade}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Class</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.className) ? 'Not set' : userInfo.className}">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edit-form" id="student-info-edit">
+                        <form th:action="@{/profile}" th:object="${profileForm}" method="post">
+                            <input type="hidden" name="action" value="student-info">
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label for="studentNo">Student ID</label>
+                                    <input id="studentNo" th:field="*{studentNo}" placeholder="Enter your student ID">
+                                </div>
+                                <div class="form-row">
+                                    <label for="grade">Grade</label>
+                                    <input id="grade" th:field="*{grade}" placeholder="e.g., 2023">
+                                </div>
+                                <div class="form-row">
+                                    <label for="className">Class</label>
+                                    <input id="className" th:field="*{className}" placeholder="e.g., Software Engineering 1">
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="button" type="submit">Save Changes</button>
+                                <button class="button secondary" type="button" onclick="toggleEdit('student-info')">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                </th:block>
+
+                <!-- Teacher Information Card -->
+                <th:block th:if="${roleKey == 'teacher'}">
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <div class="profile-card-icon teacher">👨‍🏫</div>
+                        <div class="profile-card-title">
+                            <h3>Teacher Information</h3>
+                            <p>Your professional details registered in the system</p>
+                        </div>
+                        <button class="edit-toggle" onclick="toggleEdit('teacher-info')">Edit</button>
+                    </div>
+                    <div class="view-mode" id="teacher-info-view">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Employee ID</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.employeeNo) ? 'Not set' : userInfo.employeeNo}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Title</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.title) ? 'Not set' : userInfo.title}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Department</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.deptName) ? 'Not set' : userInfo.deptName}">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edit-form" id="teacher-info-edit">
+                        <form th:action="@{/profile}" th:object="${profileForm}" method="post">
+                            <input type="hidden" name="action" value="teacher-info">
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label for="employeeNo">Employee ID</label>
+                                    <input id="employeeNo" th:field="*{employeeNo}" placeholder="Enter your employee ID">
+                                </div>
+                                <div class="form-row">
+                                    <label for="title">Title</label>
+                                    <input id="title" th:field="*{title}" placeholder="e.g., Professor">
+                                </div>
+                                <div class="form-row">
+                                    <label for="deptName">Department</label>
+                                    <input id="deptName" th:field="*{deptName}" placeholder="e.g., Computer Science">
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="button" type="submit">Save Changes</button>
+                                <button class="button secondary" type="button" onclick="toggleEdit('teacher-info')">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                </th:block>
+
+                <!-- Society Member Information Card -->
+                <th:block th:if="${roleKey == 'society'}">
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <div class="profile-card-icon student">🎓</div>
+                        <div class="profile-card-title">
+                            <h3>Society Information</h3>
+                            <p>Your academic details registered in the system</p>
+                        </div>
+                        <button class="edit-toggle" onclick="toggleEdit('society-info')">Edit</button>
+                    </div>
+                    <div class="view-mode" id="society-info-view">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Society ID</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.studentNo) ? 'Not set' : userInfo.studentNo}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Grade</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.grade) ? 'Not set' : userInfo.grade}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Class</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.className) ? 'Not set' : userInfo.className}">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edit-form" id="society-info-edit">
+                        <form th:action="@{/profile}" th:object="${profileForm}" method="post">
+                            <input type="hidden" name="action" value="society-info">
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label for="societyId">Society ID</label>
+                                    <input id="societyId" th:field="*{studentNo}" placeholder="Enter your society ID">
+                                </div>
+                                <div class="form-row">
+                                    <label for="gradeSociety">Grade</label>
+                                    <input id="gradeSociety" th:field="*{grade}" placeholder="e.g., 2023">
+                                </div>
+                                <div class="form-row">
+                                    <label for="classNameSociety">Class</label>
+                                    <input id="classNameSociety" th:field="*{className}" placeholder="e.g., Software Engineering 1">
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="button" type="submit">Save Changes</button>
+                                <button class="button secondary" type="button" onclick="toggleEdit('society-info')">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                </th:block>
+
+                <!-- Basic Information Card -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <div class="profile-card-icon" style="background: var(--green-soft); color: var(--success);">👤</div>
+                        <div class="profile-card-title">
+                            <h3>Basic Information</h3>
+                            <p>Your account contact details</p>
+                        </div>
+                        <button class="edit-toggle" onclick="toggleEdit('basic-info')">Edit</button>
+                    </div>
+                    <div class="view-mode" id="basic-info-view">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Display Name</span>
+                                <span class="info-value" th:text="${userInfo.nickName}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Email</span>
+                                <span class="info-value" th:text="${userInfo.email}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Phone</span>
+                                <span class="info-value" th:text="${#strings.isEmpty(userInfo.phonenumber) ? 'Not set' : userInfo.phonenumber}">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Gender</span>
+                                <span class="info-value" th:switch="${userInfo.sex}">
+                                    <span th:case="'0'">Male</span>
+                                    <span th:case="'1'">Female</span>
+                                    <span th:case="*">Unknown</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edit-form" id="basic-info-edit">
+                        <form th:action="@{/profile}" th:object="${profileForm}" method="post">
+                            <input type="hidden" name="action" value="basic-info">
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label for="nickName">Display Name</label>
+                                    <input id="nickName" th:field="*{nickName}" required>
+                                </div>
+                                <div class="form-row">
+                                    <label for="email">Email</label>
+                                    <input id="email" th:field="*{email}" type="email" required>
+                                </div>
+                                <div class="form-row">
+                                    <label for="phonenumber">Phone</label>
+                                    <input id="phonenumber" th:field="*{phonenumber}">
+                                </div>
+                                <div class="form-row">
+                                    <label for="sex">Gender</label>
+                                    <select id="sex" th:field="*{sex}">
+                                        <option value="0">Male</option>
+                                        <option value="1">Female</option>
+                                        <option value="2">Unknown</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="button" type="submit">Save Changes</button>
+                                <button class="button secondary" type="button" onclick="toggleEdit('basic-info')">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Password Change Card -->
+                <div class="password-section">
+                    <div class="profile-card-header">
+                        <div class="profile-card-icon" style="background: var(--amber-soft); color: var(--warning);">🔒</div>
+                        <div class="profile-card-title">
+                            <h3>Change Password</h3>
+                            <p>Update your account password</p>
+                        </div>
+                    </div>
+                    <div class="server-error" id="serverPasswordError" th:if="${profileForm.passwordError}" th:text="${profileForm.passwordError}"></div>
+                    <form id="passwordForm" th:action="@{/profile}" th:object="${profileForm}" method="post">
+                        <input type="hidden" name="action" value="password">
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label for="oldPassword">Old Password</label>
+                                <input id="oldPassword" th:field="*{oldPassword}" type="password" required>
+                                <div class="password-error hidden" id="oldPasswordError">Old password is required</div>
+                            </div>
+                            <div class="form-row">
+                                <label for="newPassword">New Password</label>
+                                <input id="newPassword" th:field="*{newPassword}" type="password" required>
+                                <div class="password-strength">
+                                    <div class="password-strength-bar">
+                                        <div class="password-strength-fill" id="password-strength-fill"></div>
+                                    </div>
+                                </div>
+                                <ul class="password-requirements">
+                                    <li id="req-length">At least 8 characters</li>
+                                    <li id="req-letter">Contains at least one letter</li>
+                                    <li id="req-number">Contains at least one number</li>
+                                </ul>
+                            </div>
+                            <div class="form-row">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <input id="confirmPassword" type="password" required>
+                                <div class="password-error hidden" id="confirmPasswordError">Passwords do not match</div>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="button" type="submit" id="submitBtn">Update Password</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    function toggleEdit(section) {
+        var viewMode = document.getElementById(section + '-view');
+        var editForm = document.getElementById(section + '-edit');
+
+        if (viewMode.classList.contains('hidden')) {
+            viewMode.classList.remove('hidden');
+            editForm.classList.remove('active');
+        } else {
+            viewMode.classList.add('hidden');
+            editForm.classList.add('active');
+        }
+    }
+
+    // Password strength indicator
+    document.getElementById('newPassword').addEventListener('input', function() {
+        const password = this.value;
+        const fill = document.getElementById('password-strength-fill');
+        const reqLength = document.getElementById('req-length');
+        const reqLetter = document.getElementById('req-letter');
+        const reqNumber = document.getElementById('req-number');
+
+        fill.className = 'password-strength-fill';
+
+        // Check requirements
+        const hasLength = password.length >= 8;
+        const hasLetter = /[a-zA-Z]/.test(password);
+        const hasNumber = /\d/.test(password);
+
+        // Update requirement indicators
+        reqLength.className = hasLength ? 'valid' : '';
+        reqLetter.className = hasLetter ? 'valid' : '';
+        reqNumber.className = hasNumber ? 'valid' : '';
+
+        // Update strength bar
+        if (password.length >= 8) {
+            if (hasLetter && hasNumber) {
+                fill.classList.add('strength-strong');
+            } else if (hasLetter || hasNumber) {
+                fill.classList.add('strength-medium');
+            } else {
+                fill.classList.add('strength-weak');
+            }
+        } else if (password.length > 0) {
+            fill.classList.add('strength-weak');
+        }
+    });
+
+    // Confirm password validation
+    document.getElementById('confirmPassword').addEventListener('input', function() {
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = this.value;
+        const error = document.getElementById('confirmPasswordError');
+
+        if (confirmPassword.length > 0 && newPassword !== confirmPassword) {
+            error.classList.remove('hidden');
+            error.classList.add('show');
+        } else {
+            error.classList.remove('show');
+            error.classList.add('hidden');
+        }
+    });
+
+    // Form validation on submit
+    document.getElementById('passwordForm').addEventListener('submit', function(e) {
+        const oldPassword = document.getElementById('oldPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const oldPasswordError = document.getElementById('oldPasswordError');
+        const confirmPasswordError = document.getElementById('confirmPasswordError');
+
+        let hasError = false;
+
+        // Check old password is not empty
+        if (!oldPassword) {
+            oldPasswordError.classList.remove('hidden');
+            oldPasswordError.classList.add('show');
+            hasError = true;
+        } else {
+            oldPasswordError.classList.remove('show');
+            oldPasswordError.classList.add('hidden');
+        }
+
+        // Check password requirements
+        if (newPassword.length < 8 || !/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+            hasError = true;
+        }
+
+        // Check passwords match
+        if (newPassword !== confirmPassword) {
+            confirmPasswordError.classList.remove('hidden');
+            confirmPasswordError.classList.add('show');
+            hasError = true;
+        } else {
+            confirmPasswordError.classList.remove('show');
+            confirmPasswordError.classList.add('hidden');
+        }
+
+        if (hasError) {
+            e.preventDefault();
+        }
+    });
+</script>
+</body>
+</html>

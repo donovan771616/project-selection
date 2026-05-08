@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign in - Project Selection</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="auth-page">
+<main class="auth-panel">
+    <h1>Project Selection</h1>
+    <p>Sign in to manage topics, applications, and approvals.</p>
+    <div class="message" th:if="${hasResend}">Verification code has been sent to your registered email. Please check and complete activation.</div>
+    <div class="error" th:if="${hasResendError and message}" th:text="${message}"></div>
+    <div class="error" th:if="${hasError}">Invalid username or password. Please try again.</div>
+    <div class="error" th:if="${hasInactive and !hasResend}">
+        Email not activated. Please verify your email before logging in.
+    </div>
+    <div class="notice" th:if="${showResendForm}">
+        <form th:action="@{/activation/resend}" method="post" id="resendForm">
+            <div class="form-row inline">
+                <input name="source" type="hidden" value="login">
+                <input name="email" type="hidden" th:value="${inactiveEmail}">
+                <label>Registered Email</label>
+                <span class="email-display" th:text="${inactiveEmail}">email@example.com</span>
+                <button class="button" type="submit" id="resendBtn">Resend Verification Code</button>
+            </div>
+        </form>
+    </div>
+    <div class="error" th:if="${hasDisabled}">Account has been disabled. Please contact administrator.</div>
+    <div class="message" th:if="${hasLogout}">You have signed out.</div>
+    <form th:action="@{/login/process}" method="post">
+        <div class="form-row">
+            <label for="username">Username</label>
+            <input id="username" name="username" autocomplete="username" required>
+        </div>
+        <div class="form-row">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="actions">
+            <button class="button" type="submit">Sign in</button>
+            <a class="button secondary" th:href="@{/register}">Create account</a>
+            <a class="button secondary" th:href="@{/login}" th:if="${showResendForm}">Back</a>
+        </div>
+    </form>
+</main>
+
+<script>
+// 验证码发送倒计时功能
+(function() {
+    const resendBtn = document.getElementById('resendBtn');
+    const resendForm = document.getElementById('resendForm');
+    
+    if (resendBtn && resendForm) {
+        let countdown = 60; // 倒计时60秒
+        let timer = null;
+        
+        // 检查是否刚发送过验证码（通过URL参数判断）
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('resend')) {
+            startCountdown();
+        }
+        
+        resendForm.addEventListener('submit', function(e) {
+            // 邮箱现在在隐藏字段中，始终有值，直接开始倒计时
+            startCountdown();
+        });
+        
+        function startCountdown() {
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Resend available in ' + countdown + 's';
+            resendBtn.style.opacity = '0.6';
+            resendBtn.style.cursor = 'not-allowed';
+            
+            timer = setInterval(function() {
+                countdown--;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend Verification Code';
+                    resendBtn.style.opacity = '1';
+                    resendBtn.style.cursor = 'pointer';
+                    countdown = 60;
+                } else {
+                    resendBtn.textContent = 'Resend available in ' + countdown + 's';
+                }
+            }, 1000);
+        }
+    }
+})();
+</script>
+</body>
+</html>

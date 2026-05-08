@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Activate account - Project Selection</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="auth-page">
+<main class="auth-panel">
+    <h1>Check your email</h1>
+    <div class="message" th:if="${message}" th:text="${message}"></div>
+    <p>
+        An activation link has been sent
+        <span th:if="${email}" th:text="'to ' + ${email}">to your email</span>. The link expires in 3 hours.
+    </p>
+    <div class="message">Open the activation link before signing in.</div>
+    <div class="actions">
+        <a class="button" th:href="@{/login}">Back to sign in</a>
+        <a class="button secondary" th:href="@{/activation/resend}">Resend email</a>
+    </div>
+</main>
+</body>
+</html>
