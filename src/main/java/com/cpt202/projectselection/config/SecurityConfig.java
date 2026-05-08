@@ -12,9 +12,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
-// TODO: CSRF protection not yet configured
-// TODO: Missing role-based route restrictions for admin/teacher paths
+// FIXED: Added CSRF protection
+// FIXED: Added role-based route restrictions
+// TODO: Missing activation-resend and activation-success routes in permit list
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
@@ -36,16 +38,23 @@ public class SecurityConfig {
         http
                 .authenticationProvider(authenticationProvider())
                 .authorizeRequests()
-                    // Static resources and auth pages are public
                     .antMatchers("/css/**", "/js/**", "/images/**", "/vendor/**", "/login",
                             "/register", "/register/student", "/register/teacher",
                             "/activate", "/activation-pending").permitAll()
-                    // BUG: /system/users not restricted to ADMIN only
-                    // BUG: teacher and student routes not separated
+                    // FIXED: Admin-only routes
+                    .antMatchers("/system/users/**").hasRole("ADMIN")
+                    .antMatchers("/project/categories/**", "/project/reports/**").hasRole("ADMIN")
+                    // FIXED: Teacher routes
+                    .antMatchers("/teacher/applications/**").hasAnyRole("TEACHER", "ADMIN")
+                    // FIXED: Shared routes
+                    .antMatchers("/project/applications/**").hasAnyRole("TEACHER", "ADMIN", "STUDENT")
+                    .antMatchers("/project/topics/**").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
                     .anyRequest().authenticated()
                     .and()
-                // BUG: CSRF disabled - security vulnerability
-                .csrf().disable()
+                // FIXED: CSRF enabled with cookie repository
+                .csrf()
+                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                    .and()
                 .formLogin()
                     .loginPage("/login")
                     .loginProcessingUrl("/login/process")
@@ -56,7 +65,11 @@ public class SecurityConfig {
                 .logout()
                     .logoutUrl("/logout")
                     .logoutSuccessUrl("/login?logout")
-                    .permitAll();
+                    .permitAll()
+                    .and()
+                // FIXED: Added 403 handler
+                .exceptionHandling()
+                    .accessDeniedPage("/403");
         return http.build();
     }
 

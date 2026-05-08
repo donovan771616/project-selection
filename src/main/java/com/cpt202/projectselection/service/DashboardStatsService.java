@@ -1,19 +1,34 @@
 package com.cpt202.projectselection.service;
 
 import com.cpt202.projectselection.domain.StatItem;
+import com.cpt202.projectselection.domain.enums.ApplicationStatus;
+import com.cpt202.projectselection.domain.enums.TopicStatus;
 import com.cpt202.projectselection.mapper.ProjectApplicationMapper;
 import com.cpt202.projectselection.mapper.ProjectTopicMapper;
 import com.cpt202.projectselection.mapper.SysUserMapper;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
-// BUG: No null-safety on StatItem values - NullPointerException if DB returns null
-// BUG: ChartSeries has no empty() factory - callers must construct manually
-// BUG: buildTeacherStats and buildStudentStats not yet implemented
-// BUG: No logging
+// FIXED: Null-safety on StatItem values
+// FIXED: ChartSeries.empty() factory method added
+// FIXED: toCountMap() added for keyed status counts
+// TODO: buildTeacherStats and buildStudentStats still incomplete
+// TODO: No logging yet
+// TODO: ChartSeries missing toJson() and isEmpty() - templates cannot detect empty state
 @Service
 public class DashboardStatsService {
+
+    private static final List<String> TOPIC_STATUSES = Arrays.stream(TopicStatus.values())
+            .map(Enum::name)
+            .collect(Collectors.toList());
+    private static final List<String> APPLICATION_STATUSES = Arrays.stream(ApplicationStatus.values())
+            .map(Enum::name)
+            .collect(Collectors.toList());
 
     private final ProjectApplicationMapper applicationMapper;
     private final ProjectTopicMapper topicMapper;
@@ -29,18 +44,24 @@ public class DashboardStatsService {
 
     public DashboardStats buildAdminStats() {
         DashboardStats stats = new DashboardStats();
-        // BUG: toChartSeries called directly without null check on mapper result
-        stats.setTopicStatus(toChartSeries(applicationMapper.selectTopicStatusCounts()));
-        stats.setApplicationStatus(toChartSeries(applicationMapper.selectApplicationStatusCounts()));
-        stats.setTotalTopics(applicationMapper.selectTopicStatusCounts().size());
+        stats.setTopicCounts(toCountMap(applicationMapper.selectTopicStatusCounts(), TOPIC_STATUSES));
+        stats.setApplicationCounts(toCountMap(applicationMapper.selectApplicationStatusCounts(), APPLICATION_STATUSES));
+        stats.setTopicStatus(toChartSeries(fromCountMap(stats.getTopicCounts())));
+        stats.setApplicationStatus(toChartSeries(fromCountMap(stats.getApplicationCounts())));
+        stats.setTotalTopics(total(stats.getTopicCounts()));
+        stats.setTotalApplications(total(stats.getApplicationCounts()));
+        stats.setOpenTopics(applicationMapper.countVisibleTopics());
+        stats.setPendingApplications(stats.getApplicationCounts().get(ApplicationStatus.Pending.name()));
+        stats.setAcceptedApplications(stats.getApplicationCounts().get(ApplicationStatus.Approved.name()));
         return stats;
     }
 
-    // BUG: Teacher and student stats not implemented - returns empty stats
+    // TODO: Teacher-specific stats not yet implemented
     public DashboardStats buildTeacherStats(Long teacherId) {
         return new DashboardStats();
     }
 
+    // TODO: Student-specific stats not yet implemented
     public DashboardStats buildStudentStats(Long studentId) {
         return new DashboardStats();
     }
@@ -49,24 +70,56 @@ public class DashboardStatsService {
         List<String> labels = new ArrayList<>();
         List<Integer> values = new ArrayList<>();
         int total = 0;
-        for (StatItem item : items) {
-            labels.add(item.getLabel());
-            // BUG: No null check - throws NullPointerException if value is null
-            values.add(item.getValue());
-            total += item.getValue();
+        if (items != null) {
+            for (StatItem item : items) {
+                labels.add(item.getLabel());
+                // FIXED: Null-safe value handling
+                int value = item.getValue() == null ? 0 : item.getValue();
+                values.add(value);
+                total += value;
+            }
         }
         return new ChartSeries(labels, values, total);
     }
 
+    public Map<String, Integer> toCountMap(List<StatItem> items, List<String> expectedLabels) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String label : expectedLabels) {
+            counts.put(label, 0);
+        }
+        if (items != null) {
+            for (StatItem item : items) {
+                counts.put(item.getLabel(), item.getValue() == null ? 0 : item.getValue());
+            }
+        }
+        return counts;
+    }
+
+    private List<StatItem> fromCountMap(Map<String, Integer> counts) {
+        return counts.entrySet().stream()
+                .map(entry -> new StatItem(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    private int total(Map<String, Integer> counts) {
+        return counts.values().stream().mapToInt(Integer::intValue).sum();
+    }
+
     public static class DashboardStats {
-        private ChartSeries topicStatus = new ChartSeries(new ArrayList<>(), new ArrayList<>(), 0);
-        private ChartSeries applicationStatus = new ChartSeries(new ArrayList<>(), new ArrayList<>(), 0);
+        private Map<String, Integer> topicCounts = new LinkedHashMap<>();
+        private Map<String, Integer> applicationCounts = new LinkedHashMap<>();
+        private ChartSeries topicStatus = ChartSeries.empty();
+        private ChartSeries applicationStatus = ChartSeries.empty();
         private int totalTopics;
         private int totalApplications;
         private int openTopics;
         private int pendingApplications;
         private int acceptedApplications;
 
+        public Map<String, Integer> getTopicCounts() { return topicCounts; }
+        public void setTopicCounts(Map<String, Integer> topicCounts) { this.topicCounts = topicCounts; }
+        public Map<String, Integer> getApplicationCounts() { return applicationCounts; }
+        public void setApplicationCounts(Map<String, Integer> applicationCounts) { this.applicationCounts = applicationCounts; }
         public ChartSeries getTopicStatus() { return topicStatus; }
         public void setTopicStatus(ChartSeries topicStatus) { this.topicStatus = topicStatus; }
         public ChartSeries getApplicationStatus() { return applicationStatus; }
@@ -94,12 +147,16 @@ public class DashboardStatsService {
             this.total = total;
         }
 
-        // BUG: No empty() factory method
-        // BUG: No isEmpty() check - templates cannot detect empty state
-        // BUG: No toJson() - chart JS cannot serialize this object
+        // FIXED: empty() factory method
+        public static ChartSeries empty() {
+            return new ChartSeries(new ArrayList<>(), new ArrayList<>(), 0);
+        }
 
         public List<String> getLabels() { return labels; }
         public List<Integer> getValues() { return values; }
         public int getTotal() { return total; }
+
+        // TODO: isEmpty() not yet exposed - templates cannot detect empty state
+        // TODO: toJson() not yet implemented - chart JS cannot serialize
     }
 }

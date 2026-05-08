@@ -23,39 +23,40 @@
                 </div>
             </div>
 
-            <!-- BUG: Static placeholder values, not bound to stats model -->
+            <!-- FIXED: Bound to stats model via Thymeleaf -->
             <div class="metric-grid">
                 <a class="metric-card" th:href="@{/admin/topics}">
                     <span>Total topics</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.totalTopics}">0</strong>
                     <small>All lifecycle states</small>
                 </a>
                 <a class="metric-card accent-green" th:href="@{/admin/topics}">
                     <span>Open topics</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.openTopics}">0</strong>
                     <small>Available or requested</small>
                 </a>
                 <a class="metric-card accent-amber" th:href="@{/admin/applications}">
                     <span>Pending applications</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.pendingApplications}">0</strong>
                     <small>Need review</small>
                 </a>
                 <a class="metric-card accent-blue" th:href="@{/admin/applications}">
                     <span>Assigned students</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.acceptedApplications}">0</strong>
                     <small>Approved selection</small>
                 </a>
             </div>
 
-            <!-- BUG: Charts not wired to real data -->
             <div class="chart-grid two">
                 <section class="chart-card">
                     <div class="panel-header"><h2>Topic status</h2></div>
                     <div id="adminTopicStatusChart" class="chart-box"></div>
+                    <!-- TODO: No empty state placeholder yet -->
                 </section>
                 <section class="chart-card">
                     <div class="panel-header"><h2>Application status</h2></div>
                     <div id="adminApplicationStatusChart" class="chart-box"></div>
+                    <!-- TODO: No empty state placeholder yet -->
                 </section>
             </div>
         </section>
@@ -63,11 +64,23 @@
 </div>
 <script th:src="@{/vendor/echarts/echarts.min.js}"></script>
 <script th:src="@{/js/dashboard-charts.js}"></script>
-<script>
-    // BUG: Hardcoded empty data - not reading from server model
+<script th:inline="javascript">
+    // FIXED: Reading data from server model via Thymeleaf inline
+    var topicStatusData = {
+        labels: /*[[${stats.topicStatus.labels}]]*/ [],
+        values: /*[[${stats.topicStatus.values}]]*/ [],
+        total: /*[[${stats.topicStatus.total}]]*/ 0
+        // TODO: empty flag not yet passed - chart cannot detect empty state
+    };
+    var applicationStatusData = {
+        labels: /*[[${stats.applicationStatus.labels}]]*/ [],
+        values: /*[[${stats.applicationStatus.values}]]*/ [],
+        total: /*[[${stats.applicationStatus.total}]]*/ 0
+    };
+
     ProjectCharts.render([
-        {id: "adminTopicStatusChart", title: "Topic status", type: "pie", series: {labels: [], values: []}},
-        {id: "adminApplicationStatusChart", title: "Application status", type: "bar", series: {labels: [], values: []}}
+        {id: "adminTopicStatusChart", title: "Topic status", type: "pie", series: topicStatusData},
+        {id: "adminApplicationStatusChart", title: "Application status", type: "bar", series: applicationStatusData}
     ]);
 </script>
 </body>
