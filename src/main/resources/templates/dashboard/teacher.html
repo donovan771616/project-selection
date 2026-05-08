@@ -15,7 +15,7 @@
                 <div>
                     <p class="eyebrow">Teacher workspace</p>
                     <h1 class="page-title">Topic and review dashboard</h1>
-                    <p class="page-subtitle">Track your topic portfolio and process student requests.</p>
+                    <p class="page-subtitle">Track your topic portfolio and process student requests without losing context.</p>
                 </div>
                 <div class="actions">
                     <a class="button secondary" th:href="@{/teacher/topics}">My topics</a>
@@ -23,51 +23,77 @@
                 </div>
             </div>
 
-            <!-- BUG: Static placeholder values, not bound to stats model -->
             <div class="metric-grid">
                 <a class="metric-card" th:href="@{/teacher/topics}">
                     <span>My topics</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.totalTopics}">0</strong>
                     <small>Drafts and published topics</small>
                 </a>
                 <a class="metric-card accent-amber" th:href="@{/teacher/applications}">
                     <span>Pending review</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.pendingApplications}">0</strong>
                     <small>Applications waiting</small>
                 </a>
                 <a class="metric-card accent-green" th:href="@{/teacher/applications}">
                     <span>Accepted</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.acceptedApplications}">0</strong>
                     <small>Confirmed students</small>
                 </a>
                 <a class="metric-card accent-blue" th:href="@{/teacher/topics}">
                     <span>Open</span>
-                    <strong>0</strong>
+                    <strong th:text="${stats.topicCounts['Open']}">0</strong>
                     <small>Open for applications</small>
                 </a>
             </div>
 
-            <!-- BUG: Charts not wired to real data -->
             <div class="chart-grid two">
                 <section class="chart-card">
                     <div class="panel-header"><h2>My topic status</h2></div>
                     <div id="teacherTopicStatusChart" class="chart-box"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
                 </section>
                 <section class="chart-card">
                     <div class="panel-header"><h2>Review outcomes</h2></div>
                     <div id="teacherApplicationStatusChart" class="chart-box"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
                 </section>
+            </div>
+
+            <div class="quick-grid">
+                <a class="quick-action" th:href="@{/teacher/topics/new}">
+                    <strong>Prepare a topic</strong>
+                    <span>Save it as a draft, then publish when the description is ready.</span>
+                </a>
+                <a class="quick-action" th:href="@{/teacher/applications}">
+                    <strong>Review applications</strong>
+                    <span>Accept, reject, or check previous decisions in one place.</span>
+                </a>
+                <a class="quick-action" th:href="@{/teacher/topics}">
+                    <strong>Maintain portfolio</strong>
+                    <span>Edit, close, or archive topics as their lifecycle changes.</span>
+                </a>
             </div>
         </section>
     </main>
 </div>
 <script th:src="@{/vendor/echarts/echarts.min.js}"></script>
 <script th:src="@{/js/dashboard-charts.js}"></script>
-<script>
-    // BUG: Hardcoded empty data - not reading from server model
+<script th:inline="javascript">
+    var topicStatusData = {
+        labels: /*[[${stats.topicStatus.labels}]]*/ [],
+        values: /*[[${stats.topicStatus.values}]]*/ [],
+        total: /*[[${stats.topicStatus.total}]]*/ 0,
+        empty: /*[[${stats.topicStatus.empty}]]*/ false
+    };
+    var applicationStatusData = {
+        labels: /*[[${stats.applicationStatus.labels}]]*/ [],
+        values: /*[[${stats.applicationStatus.values}]]*/ [],
+        total: /*[[${stats.applicationStatus.total}]]*/ 0,
+        empty: /*[[${stats.applicationStatus.empty}]]*/ false
+    };
     ProjectCharts.render([
-        {id: "teacherTopicStatusChart", title: "My topic status", type: "pie", series: {labels: [], values: []}},
-        {id: "teacherApplicationStatusChart", title: "Review outcomes", type: "bar", series: {labels: [], values: []}}
+        {id: "teacherTopicStatusChart", title: "My topic status", type: "pie", series: topicStatusData},
+        {id: "teacherApplicationStatusChart", title: "Review outcomes", type: "bar", series: applicationStatusData}
     ]);
 </script>
 </body>

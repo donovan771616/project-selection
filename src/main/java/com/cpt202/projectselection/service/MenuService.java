@@ -1,12 +1,14 @@
 package com.cpt202.projectselection.service;
 
+import com.cpt202.projectselection.common.CurrentUser;
 import com.cpt202.projectselection.domain.SysMenu;
 import com.cpt202.projectselection.mapper.SysMenuMapper;
+import com.cpt202.projectselection.security.LoginUser;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-// BUG: No null check on current user - throws NullPointerException when not logged in
-// BUG: Returns all menus regardless of user role
+
 @Service
 public class MenuService {
 
@@ -17,8 +19,10 @@ public class MenuService {
     }
 
     public List<SysMenu> currentMenus() {
-        // BUG: No null check - if session expires mid-request, NPE occurs
-        // BUG: Should filter by userId but queries all menus instead
-        return menuMapper.selectMenusByUserId(null);
+        LoginUser loginUser = CurrentUser.get();
+        if (loginUser == null) {
+            return Collections.emptyList();
+        }
+        return menuMapper.selectMenusByUserId(loginUser.getUserId());
     }
 }
