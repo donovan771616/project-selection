@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Detail</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <div class="actions">
+                <a class="button secondary" th:href="${returnUrl}">Back to topics</a>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h1 class="page-title" th:text="${topic.title}">Topic title</h1>
+                        <p class="page-subtitle" th:text="${topic.keywords}">Keywords</p>
+                    </div>
+                    <span th:class="|badge ${topic.status}|" th:text="${topic.status}">Status</span>
+                </div>
+                <dl class="detail-list">
+                    <dt>Supervisor</dt><dd th:text="${topic.teacherName}">Supervisor</dd>
+                    <dt>Category</dt><dd th:text="${topic.categoryName}">Category</dd>
+                    <dt>Capacity</dt><dd th:text="${topic.maxStudents}">1</dd>
+                    <dt>Skills</dt><dd th:text="${topic.skills}">Skills</dd>
+                    <dt>Description</dt><dd th:text="${topic.description}">Description</dd>
+                </dl>
+            </div>
+            <div class="panel" sec:authorize="hasRole('STUDENT')">
+                <div class="panel-header">
+                    <h2>Submit application</h2>
+                </div>
+                <div class="status-strip" th:if="${hasPendingApplication}">
+                    <strong>Pending application found</strong>
+                    <span>You have a pending application. Please wait for review or withdraw it before submitting a new one.</span>
+                </div>
+                <form th:if="${!hasPendingApplication && topic.status == 'Open'}"
+                      th:action="@{/project/topics/{id}/apply(id=${topic.topicId})}"
+                      th:object="${applicationForm}" method="post">
+                    <input type="hidden" th:field="*{topicId}">
+                    <div class="form-row">
+                        <label for="personalNote">Application note</label>
+                        <textarea id="personalNote" th:field="*{personalNote}" placeholder="Explain your motivation and relevant skills."></textarea>
+                    </div>
+                    <button class="button" type="submit">Submit application</button>
+                </form>
+                <p th:unless="${hasPendingApplication || topic.status == 'Open'}">This topic is not open for new applications.</p>
+            </div>
+            <div class="panel danger-zone" th:if="${canManageTopic}" sec:authorize="hasAnyRole('TEACHER','ADMIN')">
+                <div class="panel-header">
+                    <h2>Topic actions</h2>
+                </div>
+                <div class="actions">
+                    <a class="button secondary" th:href="@{/project/topics/{id}/edit(id=${topic.topicId})}">Edit</a>
+                    <form th:if="${topic.status == 'Draft'}" th:action="@{/project/topics/{id}/publish(id=${topic.topicId})}" method="post" style="display:inline" id="publishForm">
+                        <button class="button success" type="button" onclick="showPublishConfirm()">Publish</button>
+                    </form>
+                    <form th:if="${topic.status == 'Open'}" th:action="@{/project/topics/{id}/close(id=${topic.topicId})}" method="post" style="display:inline" id="closeForm">
+                        <button class="button warning" type="button" onclick="showCloseConfirm()">Close</button>
+                    </form>
+                    <form th:if="${topic.status == 'Closed'}" th:action="@{/project/topics/{id}/archive(id=${topic.topicId})}" method="post" style="display:inline" id="archiveForm">
+                        <button class="button danger" type="button" onclick="showArchiveConfirm()">Archive</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script>
+function showPublishConfirm() {
+    openConfirmDialog('Publish Topic', 'Publish this topic and make it visible to students?', function() {
+        document.getElementById('publishForm').submit();
+    }, { icon: 'success' });
+}
+
+function showCloseConfirm() {
+    openConfirmDialog('Close Topic', 'Close this topic? Students will no longer be able to apply.', function() {
+        document.getElementById('closeForm').submit();
+    }, { icon: 'warning' });
+}
+
+function showArchiveConfirm() {
+    openConfirmDialog('Archive Topic', 'Archive this topic? It will be hidden from active topic lists.', function() {
+        document.getElementById('archiveForm').submit();
+    }, { icon: 'warning' });
+}
+</script>
+</body>
+</html>
