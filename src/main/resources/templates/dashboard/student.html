@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="hero-panel student-hero">
+                <div>
+                    <p class="eyebrow">Student workspace</p>
+                    <h1 class="page-title">Selection progress dashboard</h1>
+                    <p class="page-subtitle">Find suitable topics, submit applications, and keep your project choice visible.</p>
+                </div>
+                <div class="actions">
+                    <a class="button secondary" th:href="@{/student/applications}">My applications</a>
+                    <a class="button" th:href="@{/student/topics}">Browse topics</a>
+                </div>
+            </div>
+
+            <!-- BUG: Static placeholder values, not bound to stats model -->
+            <!-- BUG: No accepted-topic status strip -->
+            <div class="metric-grid">
+                <a class="metric-card" th:href="@{/student/topics}">
+                    <span>Open topics</span>
+                    <strong>0</strong>
+                    <small>Available to browse</small>
+                </a>
+                <a class="metric-card accent-amber" th:href="@{/student/applications}">
+                    <span>Pending</span>
+                    <strong>0</strong>
+                    <small>Waiting for review</small>
+                </a>
+                <a class="metric-card accent-green" th:href="@{/student/applications}">
+                    <span>Accepted</span>
+                    <strong>0</strong>
+                    <small>Confirmed applications</small>
+                </a>
+                <a class="metric-card accent-blue" th:href="@{/student/applications}">
+                    <span>Total applications</span>
+                    <strong>0</strong>
+                    <small>Your full history</small>
+                </a>
+            </div>
+
+            <!-- BUG: Charts not wired to real data -->
+            <div class="chart-grid single">
+                <section class="chart-card">
+                    <div class="panel-header"><h2>My application status</h2></div>
+                    <div id="studentApplicationStatusChart" class="chart-box"></div>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+<script th:src="@{/vendor/echarts/echarts.min.js}"></script>
+<script th:src="@{/js/dashboard-charts.js}"></script>
+<script>
+    // BUG: Hardcoded empty data - not reading from server model
+    ProjectCharts.render([
+        {id: "studentApplicationStatusChart", title: "My application status", type: "pie", series: {labels: [], values: []}}
+    ]);
+</script>
+</body>
+</html>
