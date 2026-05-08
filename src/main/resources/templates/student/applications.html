@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>My Applications</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title">My Applications</h1>
+                    <p class="page-subtitle">Track the status of your topic applications.</p>
+                </div>
+                <a class="button" th:href="@{/student/topics}">Browse Topics</a>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <form class="panel filters" th:action="@{/student/applications}" method="get">
+                <select name="status">
+                    <option value="">All status</option>
+                    <option value="Pending" th:selected="${status == 'Pending'}">Pending</option>
+                    <option value="Approved" th:selected="${status == 'Approved'}">Approved</option>
+                    <option value="Rejected" th:selected="${status == 'Rejected'}">Rejected</option>
+                    <option value="Withdrawn" th:selected="${status == 'Withdrawn'}">Withdrawn</option>
+                </select>
+                <button class="button" type="submit">Filter</button>
+                <a class="button secondary" th:href="@{/student/applications}">Reset</a>
+            </form>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Topic</th>
+                        <th>Supervisor</th>
+                        <th>Status</th>
+                        <th>Applied</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="app : ${applicationsPage.rows}">
+                        <td>
+                            <strong th:text="${app.topicTitle}">Topic</strong>
+                        </td>
+                        <td th:text="${app.teacherName}">Supervisor</td>
+                        <td>
+                            <span th:class="|badge ${app.status}|" th:text="${app.status}">Pending</span>
+                            <span class="reject-reason" th:if="${app.rejectReason}" th:text="${app.rejectReason}"></span>
+                        </td>
+                        <td th:text="${app.createTime != null ? #temporals.format(app.createTime, 'yyyy-MM-dd') : '-'}">2024-01-01</td>
+                        <td class="actions">
+                            <a class="button small secondary" th:href="@{/student/applications/{id}(id=${app.applicationId})}">View Details</a>
+                            <form th:if="${app.status == 'Pending'}" th:action="@{/student/applications/{id}/withdraw(id=${app.applicationId})}" method="post" style="display:inline" th:id="'withdrawForm' + ${app.applicationId}">
+                                <button class="button small warning" type="button" th:onclick="'showWithdrawConfirm(' + ${app.applicationId} + ')'">Withdraw</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${applicationsPage == null || #lists.isEmpty(applicationsPage.rows)}">
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <p>No applications found.</p>
+                                <a class="button" th:href="@{/student/topics}">Browse Topics</a>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav class="pagination" th:if="${applicationsPage.totalPages > 1}">
+                <a class="button small secondary" th:classappend="${!applicationsPage.hasPrevious} ? ' disabled' : ''"
+                   th:href="@{/student/applications(status=${status}, page=${applicationsPage.previousPage})}">Previous</a>
+                <span th:text="${applicationsPage.page + ' / ' + applicationsPage.totalPages}">1 / 1</span>
+                <a class="button small secondary" th:classappend="${!applicationsPage.hasNext} ? ' disabled' : ''"
+                   th:href="@{/student/applications(status=${status}, page=${applicationsPage.nextPage})}">Next</a>
+            </nav>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script>
+function showWithdrawConfirm(appId) {
+    openConfirmDialog('Withdraw Application', 'Are you sure you want to withdraw this application? This action cannot be undone.', function() {
+        document.getElementById('withdrawForm' + appId).submit();
+    }, { icon: 'warning', danger: true });
+}
+</script>
+<style>
+.reject-reason {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--accent-danger);
+    margin-top: 4px;
+    font-style: italic;
+}
+</style>
+</body>
+</html>
