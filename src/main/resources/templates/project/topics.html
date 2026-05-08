@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Topics</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title">Topics</h1>
+                    <p class="page-subtitle">Browse, filter, create, and maintain project topics.</p>
+                </div>
+                <a class="button" th:href="@{/project/topics/new}" sec:authorize="hasAnyRole('TEACHER','ADMIN')">New topic</a>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <form class="panel filters" th:action="@{/project/topics}" method="get">
+                <input name="keyword" th:value="${keyword}" placeholder="Title, description, or skills">
+                <select name="categoryId">
+                    <option value="">All categories</option>
+                    <option th:each="category : ${categories}" th:value="${category.categoryId}"
+                            th:selected="${category.categoryId == categoryId}" th:text="${category.categoryName}"></option>
+                </select>
+                <input name="teacherName" th:value="${teacherName}" placeholder="Supervisor">
+                <button class="button" type="submit">Search</button>
+                <a class="button secondary" th:href="@{/project/topics}">Reset</a>
+            </form>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Supervisor</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Capacity</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="topic : ${topicsPage.rows}">
+                        <td>
+                            <strong th:text="${topic.title}">Topic title</strong>
+                            <div th:text="${topic.keywords}">Keywords</div>
+                        </td>
+                        <td th:text="${topic.teacherName}">Supervisor</td>
+                        <td th:text="${topic.categoryName}">Category</td>
+                        <td><span th:class="|badge ${topic.status}|" th:text="${topic.status}">Available</span></td>
+                        <td th:text="${topic.maxStudents}">1</td>
+                        <td class="actions">
+                            <a class="button small secondary" th:href="@{/project/topics/{id}(id=${topic.topicId}, returnUrl=${returnUrl})}">View</a>
+                            <a class="button small" th:if="${loginUser != null && (loginUser.hasRole('admin') || loginUser.userId == topic.teacherId)}"
+                               th:href="@{/project/topics/{id}/edit(id=${topic.topicId})}">Edit</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${topicsPage == null || #lists.isEmpty(topicsPage.rows)}">
+                        <td colspan="6">No matching topics found.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav class="pagination" th:if="${topicsPage.totalPages > 1}">
+                <a class="button small secondary" th:classappend="${!topicsPage.hasPrevious} ? ' disabled' : ''"
+                   th:href="@{/project/topics(keyword=${keyword}, categoryId=${categoryId}, teacherName=${teacherName}, page=${topicsPage.previousPage})}">Previous</a>
+                <span th:text="${topicsPage.page + ' / ' + topicsPage.totalPages}">1 / 1</span>
+                <a class="button small secondary" th:classappend="${!topicsPage.hasNext} ? ' disabled' : ''"
+                   th:href="@{/project/topics(keyword=${keyword}, categoryId=${categoryId}, teacherName=${teacherName}, page=${topicsPage.nextPage})}">Next</a>
+            </nav>
+        </section>
+    </main>
+</div>
+</body>
+</html>
