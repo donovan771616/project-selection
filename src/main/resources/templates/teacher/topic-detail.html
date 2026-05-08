@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Detail</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title" th:text="${topic.title}">Topic Title</h1>
+                    <p class="page-subtitle">Topic details and management</p>
+                </div>
+                <div class="actions">
+                    <a class="button secondary" th:href="@{/teacher/topics}">Back to List</a>
+                    <a class="button" th:href="@{/teacher/topics/{id}/edit(id=${topic.topicId})}">Edit</a>
+                </div>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            
+            <div class="alert warning" th:if="${topic.status == 'Open' and pendingCount > 0}">
+                <strong>Pending Applications:</strong> There are <span th:text="${pendingCount}">0</span> application(s) waiting for review.
+                <a class="button small" th:href="@{/teacher/applications}">Review Now</a>
+            </div>
+            
+            <div class="panel detail">
+                <div class="detail-row">
+                    <span class="label">Status:</span>
+                    <span th:class="|badge ${topic.status}|" th:text="${topic.status}">Draft</span>
+                </div>
+                <div class="detail-row" th:if="${topic.status == 'Open'}">
+                    <span class="label">Pending Applications:</span>
+                    <span>
+                        <strong th:text="${pendingCount}">0</strong>
+                        <a th:if="${pendingCount > 0}" th:href="@{/teacher/applications}" class="button small secondary">Review</a>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Category:</span>
+                    <span th:text="${topic.categoryName}">Category</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Description:</span>
+                    <p th:text="${topic.description}">Description</p>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Skills Required:</span>
+                    <span th:text="${topic.skills}">Skills</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Keywords:</span>
+                    <span th:text="${topic.keywords}">Keywords</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Max Students:</span>
+                    <span th:text="${topic.maxStudents}">1</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Created:</span>
+                    <span th:text="${topic.createTime != null ? #temporals.format(topic.createTime, 'yyyy-MM-dd HH:mm') : '-'}">2024-01-01</span>
+                </div>
+            </div>
+            <div class="panel actions" th:if="${canManage}">
+                <h3>Actions</h3>
+                <div class="action-buttons">
+                    <form th:if="${topic.status == 'Draft'}" th:action="@{/teacher/topics/{id}/publish(id=${topic.topicId})}" method="post" style="display:inline" id="publishForm">
+                        <button class="button success" type="button" onclick="showPublishConfirm()">Publish Topic</button>
+                    </form>
+                    <th:block th:if="${topic.status == 'Open'}">
+                        <a class="button" th:href="@{/teacher/applications}">
+                            Review Applications
+                            <span class="badge accent-amber" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
+                        </a>
+                        <form th:action="@{/teacher/topics/{id}/close(id=${topic.topicId})}" method="post" style="display:inline" id="closeForm">
+                            <button class="button secondary" type="button" onclick="showCloseConfirm()">Close Topic</button>
+                        </form>
+                    </th:block>
+                    <form th:if="${topic.status == 'Closed'}" th:action="@{/teacher/topics/{id}/archive(id=${topic.topicId})}" method="post" style="display:inline" id="archiveForm">
+                        <button class="button secondary" type="button" onclick="showArchiveConfirm()">Archive Topic</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script th:inline="javascript">
+var pendingCount = /*[[${pendingCount}]]*/ 0;
+
+function showPublishConfirm() {
+    openConfirmDialog('Publish Topic', 'Publish this topic? Students will be able to apply.', function() {
+        document.getElementById('publishForm').submit();
+    }, { icon: 'success' });
+}
+
+function showCloseConfirm() {
+    var message = 'Close this topic? No new applications will be accepted.';
+    if (pendingCount > 0) {
+        message = 'Cannot close topic: There are ' + pendingCount + ' pending application(s). Please review them first.';
+        openConfirmDialog('Cannot Close', message, null, { icon: 'warning' });
+        return;
+    }
+    openConfirmDialog('Close Topic', 'Close this topic? No new applications will be accepted.', function() {
+        document.getElementById('closeForm').submit();
+    }, { icon: 'warning' });
+}
+
+function showArchiveConfirm() {
+    openConfirmDialog('Archive Topic', 'Archive this topic? It will be hidden from students.', function() {
+        document.getElementById('archiveForm').submit();
+    }, { icon: 'warning' });
+}
+</script>
+</body>
+</html>
