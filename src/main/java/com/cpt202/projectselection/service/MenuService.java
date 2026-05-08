@@ -8,11 +8,11 @@ import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-// FIXED: Null check on current user - returns empty list when not logged in
-// FIXED: Queries menus by actual userId
+
 @Service
 public class MenuService {
 
+    
     private final SysMenuMapper menuMapper;
 
     public MenuService(SysMenuMapper menuMapper) {
@@ -21,7 +21,6 @@ public class MenuService {
 
     public List<SysMenu> currentMenus() {
         LoginUser loginUser = CurrentUser.get();
-        // FIXED: Guard against unauthenticated access
         if (loginUser == null) {
             return Collections.emptyList();
         }

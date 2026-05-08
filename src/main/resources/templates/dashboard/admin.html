@@ -23,7 +23,6 @@
                 </div>
             </div>
 
-            <!-- FIXED: Bound to stats model via Thymeleaf -->
             <div class="metric-grid">
                 <a class="metric-card" th:href="@{/admin/topics}">
                     <span>Total topics</span>
@@ -35,14 +34,14 @@
                     <strong th:text="${stats.openTopics}">0</strong>
                     <small>Available or requested</small>
                 </a>
-                <a class="metric-card accent-amber" th:href="@{/admin/applications}">
+                <a class="metric-card accent-amber" th:href="@{/admin/applications(status='Pending')}">
                     <span>Pending applications</span>
                     <strong th:text="${stats.pendingApplications}">0</strong>
                     <small>Need review</small>
                 </a>
-                <a class="metric-card accent-blue" th:href="@{/admin/applications}">
+                <a class="metric-card accent-blue" th:href="@{/admin/applications(status='Approved')}">
                     <span>Assigned students</span>
-                    <strong th:text="${stats.acceptedApplications}">0</strong>
+                    <strong th:text="${stats.studentsWithAcceptedTopic}">0</strong>
                     <small>Approved selection</small>
                 </a>
             </div>
@@ -51,13 +50,28 @@
                 <section class="chart-card">
                     <div class="panel-header"><h2>Topic status</h2></div>
                     <div id="adminTopicStatusChart" class="chart-box"></div>
-                    <!-- TODO: No empty state placeholder yet -->
+                    <p class="chart-empty" hidden>No statistics available.</p>
                 </section>
                 <section class="chart-card">
                     <div class="panel-header"><h2>Application status</h2></div>
                     <div id="adminApplicationStatusChart" class="chart-box"></div>
-                    <!-- TODO: No empty state placeholder yet -->
+                    <p class="chart-empty" hidden>No statistics available.</p>
                 </section>
+            </div>
+
+            <div class="quick-grid">
+                <a class="quick-action" th:href="@{/project/categories}">
+                    <strong>Topic categories</strong>
+                    <span>Maintain official taxonomy for new topics.</span>
+                </a>
+                <a class="quick-action" th:href="@{/admin/topics}">
+                    <strong>Topic supervision</strong>
+                    <span>Review every topic across teachers and statuses.</span>
+                </a>
+                <a class="quick-action" th:href="@{/admin/applications}">
+                    <strong>Application audit</strong>
+                    <span>Filter every student request and review outcome.</span>
+                </a>
             </div>
         </section>
     </main>
@@ -65,17 +79,17 @@
 <script th:src="@{/vendor/echarts/echarts.min.js}"></script>
 <script th:src="@{/js/dashboard-charts.js}"></script>
 <script th:inline="javascript">
-    // FIXED: Reading data from server model via Thymeleaf inline
     var topicStatusData = {
         labels: /*[[${stats.topicStatus.labels}]]*/ [],
         values: /*[[${stats.topicStatus.values}]]*/ [],
-        total: /*[[${stats.topicStatus.total}]]*/ 0
-        // TODO: empty flag not yet passed - chart cannot detect empty state
+        total: /*[[${stats.topicStatus.total}]]*/ 0,
+        empty: /*[[${stats.topicStatus.empty}]]*/ false
     };
     var applicationStatusData = {
         labels: /*[[${stats.applicationStatus.labels}]]*/ [],
         values: /*[[${stats.applicationStatus.values}]]*/ [],
-        total: /*[[${stats.applicationStatus.total}]]*/ 0
+        total: /*[[${stats.applicationStatus.total}]]*/ 0,
+        empty: /*[[${stats.applicationStatus.empty}]]*/ false
     };
 
     ProjectCharts.render([

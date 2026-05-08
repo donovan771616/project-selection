@@ -23,9 +23,11 @@
                 </div>
             </div>
 
-            <!-- TODO: No accepted-topic status strip yet -->
+            <div class="status-strip" th:classappend="${stats.hasAcceptedTopic} ? ' success' : ' warning'">
+                <strong th:text="${stats.hasAcceptedTopic} ? 'Topic confirmed' : 'No confirmed topic yet'">No confirmed topic yet</strong>
+                <span th:text="${stats.hasAcceptedTopic} ? 'Your accepted selection is recorded. Keep an eye on updates from your supervisor.' : 'Browse open topics and submit an application when you find a strong match.'">Browse open topics.</span>
+            </div>
 
-            <!-- FIXED: Bound to stats model via Thymeleaf -->
             <div class="metric-grid">
                 <a class="metric-card" th:href="@{/student/topics}">
                     <span>Open topics</span>
@@ -53,8 +55,23 @@
                 <section class="chart-card">
                     <div class="panel-header"><h2>My application status</h2></div>
                     <div id="studentApplicationStatusChart" class="chart-box"></div>
-                    <!-- TODO: No empty state placeholder yet -->
+                    <p class="chart-empty" hidden>No statistics available.</p>
                 </section>
+            </div>
+
+            <div class="quick-grid">
+                <a class="quick-action" th:href="@{/student/topics}">
+                    <strong>Search topics</strong>
+                    <span>Filter by keyword, category, and supervisor.</span>
+                </a>
+                <a class="quick-action" th:href="@{/student/applications}">
+                    <strong>Track decisions</strong>
+                    <span>Review pending, accepted, rejected, and withdrawn applications.</span>
+                </a>
+                <a class="quick-action" th:href="@{/profile}">
+                    <strong>Update profile</strong>
+                    <span>Keep contact information ready for supervisors.</span>
+                </a>
             </div>
         </section>
     </main>
@@ -62,11 +79,11 @@
 <script th:src="@{/vendor/echarts/echarts.min.js}"></script>
 <script th:src="@{/js/dashboard-charts.js}"></script>
 <script th:inline="javascript">
-    // FIXED: Reading data from server model via Thymeleaf inline
     var applicationStatusData = {
         labels: /*[[${stats.applicationStatus.labels}]]*/ [],
         values: /*[[${stats.applicationStatus.values}]]*/ [],
-        total: /*[[${stats.applicationStatus.total}]]*/ 0
+        total: /*[[${stats.applicationStatus.total}]]*/ 0,
+        empty: /*[[${stats.applicationStatus.empty}]]*/ false
     };
 
     ProjectCharts.render([

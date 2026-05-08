@@ -12,16 +12,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-// FIXED: Null-safety on StatItem values
-// FIXED: ChartSeries.empty() factory method added
-// FIXED: toCountMap() added for keyed status counts
-// TODO: buildTeacherStats and buildStudentStats still incomplete
-// TODO: No logging yet
-// TODO: ChartSeries missing toJson() and isEmpty() - templates cannot detect empty state
 @Service
 public class DashboardStatsService {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardStatsService.class);
 
     private static final List<String> TOPIC_STATUSES = Arrays.stream(TopicStatus.values())
             .map(Enum::name)
@@ -43,27 +41,42 @@ public class DashboardStatsService {
     }
 
     public DashboardStats buildAdminStats() {
-        DashboardStats stats = new DashboardStats();
-        stats.setTopicCounts(toCountMap(applicationMapper.selectTopicStatusCounts(), TOPIC_STATUSES));
-        stats.setApplicationCounts(toCountMap(applicationMapper.selectApplicationStatusCounts(), APPLICATION_STATUSES));
-        stats.setTopicStatus(toChartSeries(fromCountMap(stats.getTopicCounts())));
-        stats.setApplicationStatus(toChartSeries(fromCountMap(stats.getApplicationCounts())));
-        stats.setTotalTopics(total(stats.getTopicCounts()));
-        stats.setTotalApplications(total(stats.getApplicationCounts()));
-        stats.setOpenTopics(applicationMapper.countVisibleTopics());
-        stats.setPendingApplications(stats.getApplicationCounts().get(ApplicationStatus.Pending.name()));
-        stats.setAcceptedApplications(stats.getApplicationCounts().get(ApplicationStatus.Approved.name()));
+        DashboardStats stats = baseStats();
+        stats.setCategoryTopics(toChartSeries(applicationMapper.selectTopicCountByCategory()));
+        stats.setTeacherRanking(toChartSeries(applicationMapper.selectTeacherTopicRanking()));
+        stats.setPopularTopics(toChartSeries(applicationMapper.selectPopularTopicRanking()));
+        log.info("Admin stats built: topicStatus={}, applicationStatus={}",
+                stats.getTopicStatus().toJson(), stats.getApplicationStatus().toJson());
         return stats;
     }
 
-    // TODO: Teacher-specific stats not yet implemented
     public DashboardStats buildTeacherStats(Long teacherId) {
-        return new DashboardStats();
+        DashboardStats stats = new DashboardStats();
+        stats.setTopicCounts(toCountMap(applicationMapper.selectTeacherTopicStatusCounts(teacherId), TOPIC_STATUSES));
+        stats.setApplicationCounts(toCountMap(applicationMapper.selectTeacherApplicationStatusCounts(teacherId), APPLICATION_STATUSES));
+        stats.setTopicStatus(toChartSeries(fromCountMap(stats.getTopicCounts())));
+        stats.setApplicationStatus(toChartSeries(fromCountMap(stats.getApplicationCounts())));
+        stats.setPendingApplications(applicationMapper.countTeacherPendingApplications(teacherId));
+        stats.setAcceptedApplications(stats.getApplicationCounts().get(ApplicationStatus.Approved.name()));
+        stats.setTotalTopics(total(stats.getTopicCounts()));
+        stats.setTotalApplications(total(stats.getApplicationCounts()));
+        return stats;
     }
 
-    // TODO: Student-specific stats not yet implemented
     public DashboardStats buildStudentStats(Long studentId) {
-        return new DashboardStats();
+        DashboardStats stats = new DashboardStats();
+        stats.setApplicationCounts(toCountMap(applicationMapper.selectStudentApplicationStatusCounts(studentId), APPLICATION_STATUSES));
+        stats.setApplicationStatus(toChartSeries(fromCountMap(stats.getApplicationCounts())));
+        stats.setOpenTopics(applicationMapper.countVisibleTopics());
+        stats.setAcceptedApplications(stats.getApplicationCounts().get(ApplicationStatus.Approved.name()));
+        stats.setPendingApplications(stats.getApplicationCounts().get(ApplicationStatus.Pending.name()));
+        stats.setTotalApplications(total(stats.getApplicationCounts()));
+        stats.setHasAcceptedTopic(stats.getApplicationCounts().get(ApplicationStatus.Approved.name()) > 0);
+        return stats;
+    }
+
+    public DashboardStats buildReportStats() {
+        return buildAdminStats();
     }
 
     public ChartSeries toChartSeries(List<StatItem> items) {
@@ -73,7 +86,6 @@ public class DashboardStatsService {
         if (items != null) {
             for (StatItem item : items) {
                 labels.add(item.getLabel());
-                // FIXED: Null-safe value handling
                 int value = item.getValue() == null ? 0 : item.getValue();
                 values.add(value);
                 total += value;
@@ -95,6 +107,29 @@ public class DashboardStatsService {
         return counts;
     }
 
+    private DashboardStats baseStats() {
+        DashboardStats stats = new DashboardStats();
+        stats.setTopicCounts(toCountMap(applicationMapper.selectTopicStatusCounts(), TOPIC_STATUSES));
+        stats.setApplicationCounts(toCountMap(applicationMapper.selectApplicationStatusCounts(), APPLICATION_STATUSES));
+        stats.setTopicStatus(toChartSeries(fromCountMap(stats.getTopicCounts())));
+        stats.setApplicationStatus(toChartSeries(fromCountMap(stats.getApplicationCounts())));
+        stats.setTotalTopics(total(stats.getTopicCounts()));
+        stats.setTotalApplications(total(stats.getApplicationCounts()));
+        int totalStudents = userMapper.countByRoleKey("student");
+        int withAccepted = stats.getApplicationCounts().getOrDefault(ApplicationStatus.Approved.name(), 0);
+        int withoutAccepted = Math.max(0, totalStudents - withAccepted);
+        stats.setStudentsWithAcceptedTopic(withAccepted);
+        stats.setStudentsWithoutAcceptedTopic(withoutAccepted);
+        stats.setStudentAssignment(toChartSeries(Arrays.asList(
+                new StatItem("Assigned", withAccepted),
+                new StatItem("Unassigned", withoutAccepted)
+        )));
+        stats.setOpenTopics(applicationMapper.countVisibleTopics());
+        stats.setPendingApplications(stats.getApplicationCounts().get(ApplicationStatus.Pending.name()));
+        stats.setAcceptedApplications(stats.getApplicationCounts().get(ApplicationStatus.Approved.name()));
+        return stats;
+    }
+
     private List<StatItem> fromCountMap(Map<String, Integer> counts) {
         return counts.entrySet().stream()
                 .map(entry -> new StatItem(entry.getKey(), entry.getValue()))
@@ -110,11 +145,18 @@ public class DashboardStatsService {
         private Map<String, Integer> applicationCounts = new LinkedHashMap<>();
         private ChartSeries topicStatus = ChartSeries.empty();
         private ChartSeries applicationStatus = ChartSeries.empty();
+        private ChartSeries categoryTopics = ChartSeries.empty();
+        private ChartSeries teacherRanking = ChartSeries.empty();
+        private ChartSeries popularTopics = ChartSeries.empty();
+        private ChartSeries studentAssignment = ChartSeries.empty();
         private int totalTopics;
         private int totalApplications;
         private int openTopics;
         private int pendingApplications;
         private int acceptedApplications;
+        private int studentsWithAcceptedTopic;
+        private int studentsWithoutAcceptedTopic;
+        private boolean hasAcceptedTopic;
 
         public Map<String, Integer> getTopicCounts() { return topicCounts; }
         public void setTopicCounts(Map<String, Integer> topicCounts) { this.topicCounts = topicCounts; }
@@ -124,6 +166,14 @@ public class DashboardStatsService {
         public void setTopicStatus(ChartSeries topicStatus) { this.topicStatus = topicStatus; }
         public ChartSeries getApplicationStatus() { return applicationStatus; }
         public void setApplicationStatus(ChartSeries applicationStatus) { this.applicationStatus = applicationStatus; }
+        public ChartSeries getCategoryTopics() { return categoryTopics; }
+        public void setCategoryTopics(ChartSeries categoryTopics) { this.categoryTopics = categoryTopics; }
+        public ChartSeries getTeacherRanking() { return teacherRanking; }
+        public void setTeacherRanking(ChartSeries teacherRanking) { this.teacherRanking = teacherRanking; }
+        public ChartSeries getPopularTopics() { return popularTopics; }
+        public void setPopularTopics(ChartSeries popularTopics) { this.popularTopics = popularTopics; }
+        public ChartSeries getStudentAssignment() { return studentAssignment; }
+        public void setStudentAssignment(ChartSeries studentAssignment) { this.studentAssignment = studentAssignment; }
         public int getTotalTopics() { return totalTopics; }
         public void setTotalTopics(int totalTopics) { this.totalTopics = totalTopics; }
         public int getTotalApplications() { return totalApplications; }
@@ -134,6 +184,12 @@ public class DashboardStatsService {
         public void setPendingApplications(int pendingApplications) { this.pendingApplications = pendingApplications; }
         public int getAcceptedApplications() { return acceptedApplications; }
         public void setAcceptedApplications(int acceptedApplications) { this.acceptedApplications = acceptedApplications; }
+        public int getStudentsWithAcceptedTopic() { return studentsWithAcceptedTopic; }
+        public void setStudentsWithAcceptedTopic(int studentsWithAcceptedTopic) { this.studentsWithAcceptedTopic = studentsWithAcceptedTopic; }
+        public int getStudentsWithoutAcceptedTopic() { return studentsWithoutAcceptedTopic; }
+        public void setStudentsWithoutAcceptedTopic(int studentsWithoutAcceptedTopic) { this.studentsWithoutAcceptedTopic = studentsWithoutAcceptedTopic; }
+        public boolean isHasAcceptedTopic() { return hasAcceptedTopic; }
+        public void setHasAcceptedTopic(boolean hasAcceptedTopic) { this.hasAcceptedTopic = hasAcceptedTopic; }
     }
 
     public static class ChartSeries {
@@ -147,7 +203,6 @@ public class DashboardStatsService {
             this.total = total;
         }
 
-        // FIXED: empty() factory method
         public static ChartSeries empty() {
             return new ChartSeries(new ArrayList<>(), new ArrayList<>(), 0);
         }
@@ -156,7 +211,39 @@ public class DashboardStatsService {
         public List<Integer> getValues() { return values; }
         public int getTotal() { return total; }
 
-        // TODO: isEmpty() not yet exposed - templates cannot detect empty state
-        // TODO: toJson() not yet implemented - chart JS cannot serialize
+        public boolean isEmpty() {
+            return labels.isEmpty() || total == 0;
+        }
+
+        public boolean getEmpty() {
+            return isEmpty();
+        }
+
+        @Override
+        public String toString() {
+            return "ChartSeries{" +
+                    "labels=" + labels +
+                    ", values=" + values +
+                    ", total=" + total +
+                    '}';
+        }
+
+        public String toJson() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"labels\": [");
+            for (int i = 0; i < labels.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append("\"").append(labels.get(i)).append("\"");
+            }
+            sb.append("], \"values\": [");
+            for (int i = 0; i < values.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(values.get(i));
+            }
+            sb.append("], \"total\": ").append(total);
+            sb.append(", \"empty\": ").append(isEmpty());
+            sb.append("}");
+            return sb.toString();
+        }
     }
 }

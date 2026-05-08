@@ -14,9 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
-// FIXED: Added CSRF protection
-// FIXED: Added role-based route restrictions
-// TODO: Missing activation-resend and activation-success routes in permit list
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
@@ -33,6 +30,11 @@ public class SecurityConfig {
         this.loginFailureHandler = loginFailureHandler;
     }
 
+    /**
+     * @param http
+     * @return
+     * @throws Exception
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -40,18 +42,15 @@ public class SecurityConfig {
                 .authorizeRequests()
                     .antMatchers("/css/**", "/js/**", "/images/**", "/vendor/**", "/login",
                             "/register", "/register/student", "/register/teacher",
-                            "/activate", "/activation-pending").permitAll()
-                    // FIXED: Admin-only routes
+                            "/activate", "/activation-pending", "/activation-success",
+                            "/activation/resend", "/activation-resend").permitAll()
                     .antMatchers("/system/users/**").hasRole("ADMIN")
                     .antMatchers("/project/categories/**", "/project/reports/**").hasRole("ADMIN")
-                    // FIXED: Teacher routes
-                    .antMatchers("/teacher/applications/**").hasAnyRole("TEACHER", "ADMIN")
-                    // FIXED: Shared routes
                     .antMatchers("/project/applications/**").hasAnyRole("TEACHER", "ADMIN", "STUDENT")
                     .antMatchers("/project/topics/**").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+                    .antMatchers("/teacher/applications/**").hasAnyRole("TEACHER", "ADMIN")
                     .anyRequest().authenticated()
                     .and()
-                // FIXED: CSRF enabled with cookie repository
                 .csrf()
                     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                     .and()
@@ -67,11 +66,14 @@ public class SecurityConfig {
                     .logoutSuccessUrl("/login?logout")
                     .permitAll()
                     .and()
-                // FIXED: Added 403 handler
                 .exceptionHandling()
                     .accessDeniedPage("/403");
         return http.build();
     }
+
+    /**
+     * @return
+     */
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
