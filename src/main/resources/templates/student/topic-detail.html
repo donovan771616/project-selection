@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Detail</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header" th:if="${topic != null}">
+                <div>
+                    <h1 class="page-title" th:text="${topic.title}">Topic Title</h1>
+                    <p class="page-subtitle">Topic details</p>
+                </div>
+                <a class="button secondary" th:href="${returnUrl != null ? returnUrl : '/student/topics'}">Back to List</a>
+            </div>
+            <div class="panel-header" th:if="${topic == null}">
+                <div>
+                    <h1 class="page-title">Topic Not Found</h1>
+                </div>
+                <a class="button secondary" th:href="${returnUrl != null ? returnUrl : '/student/topics'}">Back to List</a>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            
+            <div class="panel detail" th:if="${topic != null}">
+                <div class="detail-row">
+                    <span class="label">Status:</span>
+                    <span th:class="|badge ${topic.status}|" th:text="${topic.status}">Open</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Supervisor:</span>
+                    <span th:text="${topic.teacherName}">Supervisor</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Category:</span>
+                    <span th:text="${topic.categoryName}">Category</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Description:</span>
+                    <p th:text="${topic.description}">Description</p>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Skills Required:</span>
+                    <span th:text="${topic.skills}">Skills</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Keywords:</span>
+                    <span th:text="${topic.keywords}">Keywords</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Max Students:</span>
+                    <span th:text="${topic.maxStudents}">1</span>
+                </div>
+            </div>
+            
+            <div class="panel apply-panel" th:if="${topic != null && topic.status == 'Open' && !hasPendingApplication}">
+                <div class="panel-header">
+                    <h2>Submit Your Application</h2>
+                    <p class="page-subtitle">Express your interest in this topic</p>
+                </div>
+                <form th:action="@{/student/topics/{id}/apply(id=${topic.topicId})}" th:object="${applicationForm}" method="post">
+                    <div class="form-group">
+                        <label for="personalNote">Personal Note (Optional)</label>
+                        <textarea id="personalNote" th:field="*{personalNote}" rows="4" maxlength="500" placeholder="Tell the supervisor why you're interested in this topic..."></textarea>
+                        <div class="quick-fill-buttons">
+                            <span class="label">Quick fill:</span>
+                            <button type="button" class="button small secondary" onclick="fillNote('I am very interested in this topic because it aligns with my academic interests and career goals. I believe my background in related subjects will enable me to contribute effectively to this project.')">Interest & Goals</button>
+                            <button type="button" class="button small secondary" onclick="fillNote('I have experience with the required skills including programming languages, frameworks, and tools mentioned in the requirements. I am confident in my ability to tackle the challenges of this project.')">Experience</button>
+                            <button type="button" class="button small secondary" onclick="fillNote('I am eager to learn more about this field and believe this project will provide valuable learning opportunities. I am a quick learner and committed to delivering quality work.')">Learning Intent</button>
+                            <button type="button" class="button small secondary" onclick="fillNote('I have worked on similar projects in the past, which have given me relevant experience. I am excited about applying my knowledge to this new challenge.')">Related Experience</button>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="button primary large" type="submit">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="alert warning" th:if="${hasPendingApplication}">
+                <strong>Cannot Apply:</strong> You have a pending application. Please wait for review or withdraw it before submitting a new one.
+                <a class="button small" th:href="@{/student/applications}">View My Applications</a>
+            </div>
+            
+            <div class="alert info" th:if="${topic != null && topic.status != 'Open'}">
+                <strong>Not Available:</strong> This topic is not currently accepting applications.
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+function fillNote(text) {
+    document.getElementById('personalNote').value = text;
+}
+</script>
+</body>
+</html>
