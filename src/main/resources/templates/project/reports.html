@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Reports</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="hero-panel compact">
+                <div>
+                    <p class="eyebrow">Analytics</p>
+                    <h1 class="page-title">Project selection reports</h1>
+                    <p class="page-subtitle">Operational metrics for topic supply, application flow, and student assignment.</p>
+                </div>
+                <a class="button secondary" th:href="@{/index}">Back to dashboard</a>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><h2>Topic overview</h2></div>
+                <div class="metric-grid dense">
+                    <div class="metric-card"><span>Draft</span><strong th:text="${stats.topicCounts['Draft']}">0</strong></div>
+                    <div class="metric-card accent-green"><span>Open</span><strong th:text="${stats.topicCounts['Open']}">0</strong></div>
+                    <div class="metric-card accent-red"><span>Closed</span><strong th:text="${stats.topicCounts['Closed']}">0</strong></div>
+                    <div class="metric-card accent-violet"><span>Archived</span><strong th:text="${stats.topicCounts['Archived']}">0</strong></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><h2>Application overview</h2></div>
+                <div class="metric-grid dense">
+                    <div class="metric-card accent-amber"><span>Pending</span><strong th:text="${stats.applicationCounts['Pending']}">0</strong></div>
+                    <div class="metric-card accent-green"><span>Approved</span><strong th:text="${stats.applicationCounts['Approved']}">0</strong></div>
+                    <div class="metric-card accent-red"><span>Rejected</span><strong th:text="${stats.applicationCounts['Rejected']}">0</strong></div>
+                    <div class="metric-card"><span>Withdrawn</span><strong th:text="${stats.applicationCounts['Withdrawn']}">0</strong></div>
+                </div>
+            </div>
+
+            <div class="chart-grid two">
+                <section class="chart-card">
+                    <div class="panel-header"><h2>Topic status distribution</h2></div>
+                    <div id="topicStatusChart" class="chart-box"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
+                </section>
+                <section class="chart-card">
+                    <div class="panel-header"><h2>Application status distribution</h2></div>
+                    <div id="applicationStatusChart" class="chart-box"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
+                </section>
+                <section class="chart-card">
+                    <div class="panel-header"><h2>Topics by category</h2></div>
+                    <div id="categoryTopicsChart" class="chart-box tall"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
+                </section>
+                <section class="chart-card">
+                    <div class="panel-header"><h2>Teacher publishing ranking</h2></div>
+                    <div id="teacherRankingChart" class="chart-box tall"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
+                </section>
+                <section class="chart-card">
+                    <div class="panel-header"><h2>Popular topics</h2></div>
+                    <div id="popularTopicsChart" class="chart-box tall"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
+                </section>
+                <section class="chart-card">
+                    <div class="panel-header"><h2>Student assignment</h2></div>
+                    <div id="studentAssignmentChart" class="chart-box tall"></div>
+                    <p class="chart-empty" hidden>No statistics available.</p>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+<script th:src="@{/vendor/echarts/echarts.min.js}"></script>
+<script th:src="@{/js/dashboard-charts.js}"></script>
+<script th:inline="javascript">
+    var topicStatusData = {
+        labels: /*[[${stats.topicStatus.labels}]]*/ [],
+        values: /*[[${stats.topicStatus.values}]]*/ [],
+        total: /*[[${stats.topicStatus.total}]]*/ 0,
+        empty: /*[[${stats.topicStatus.empty}]]*/ false
+    };
+    var applicationStatusData = {
+        labels: /*[[${stats.applicationStatus.labels}]]*/ [],
+        values: /*[[${stats.applicationStatus.values}]]*/ [],
+        total: /*[[${stats.applicationStatus.total}]]*/ 0,
+        empty: /*[[${stats.applicationStatus.empty}]]*/ false
+    };
+    var categoryTopicsData = {
+        labels: /*[[${stats.categoryTopics.labels}]]*/ [],
+        values: /*[[${stats.categoryTopics.values}]]*/ [],
+        total: /*[[${stats.categoryTopics.total}]]*/ 0,
+        empty: /*[[${stats.categoryTopics.empty}]]*/ false
+    };
+    var teacherRankingData = {
+        labels: /*[[${stats.teacherRanking.labels}]]*/ [],
+        values: /*[[${stats.teacherRanking.values}]]*/ [],
+        total: /*[[${stats.teacherRanking.total}]]*/ 0,
+        empty: /*[[${stats.teacherRanking.empty}]]*/ false
+    };
+    var popularTopicsData = {
+        labels: /*[[${stats.popularTopics.labels}]]*/ [],
+        values: /*[[${stats.popularTopics.values}]]*/ [],
+        total: /*[[${stats.popularTopics.total}]]*/ 0,
+        empty: /*[[${stats.popularTopics.empty}]]*/ false
+    };
+    var studentAssignmentData = {
+        labels: /*[[${stats.studentAssignment.labels}]]*/ [],
+        values: /*[[${stats.studentAssignment.values}]]*/ [],
+        total: /*[[${stats.studentAssignment.total}]]*/ 0,
+        empty: /*[[${stats.studentAssignment.empty}]]*/ false
+    };
+
+    ProjectCharts.render([
+        {id: "topicStatusChart", title: "Topic status", type: "pie", series: topicStatusData},
+        {id: "applicationStatusChart", title: "Application status", type: "bar", series: applicationStatusData},
+        {id: "categoryTopicsChart", title: "Topics by category", type: "bar", horizontal: true, series: categoryTopicsData},
+        {id: "teacherRankingChart", title: "Teacher publishing ranking", type: "bar", horizontal: true, series: teacherRankingData},
+        {id: "popularTopicsChart", title: "Popular topics", type: "bar", horizontal: true, series: popularTopicsData},
+        {id: "studentAssignmentChart", title: "Student assignment", type: "gauge", series: studentAssignmentData}
+    ]);
+</script>
+</body>
+</html>

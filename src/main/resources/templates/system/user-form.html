@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Form</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <h1 class="page-title" th:text="${userForm.userId == null ? 'Create User' : 'Edit User'}">User Form</h1>
+            <p class="page-subtitle">Administrators can create any role, including other administrators.</p>
+            <div class="panel">
+                <form th:object="${userForm}"
+                      th:action="${userForm.userId == null ? '/system/users' : '/system/users/' + userForm.userId + '/edit'}"
+                      method="post">
+                    <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label for="userName">Username</label>
+                            <input id="userName" th:field="*{userName}" th:readonly="${userForm.userId != null}" required>
+                            <div class="error" th:if="${#fields.hasErrors('userName')}" th:errors="*{userName}"></div>
+                        </div>
+                        <div class="form-row">
+                            <label for="nickName">Display name</label>
+                            <input id="nickName" th:field="*{nickName}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="email">Email</label>
+                            <input id="email" th:field="*{email}" type="email" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="phonenumber">Phone</label>
+                            <input id="phonenumber" th:field="*{phonenumber}">
+                        </div>
+                        <div class="form-row">
+                            <label for="roleKey">Role</label>
+                            <select id="roleKey" th:field="*{roleKey}">
+                                <option value="admin">Admin</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="student">Student</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="status">Status</label>
+                            <select id="status" th:field="*{status}">
+                                <option value="0">Active</option>
+                                <option value="1">Disabled</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="sex">Gender</label>
+                            <select id="sex" th:field="*{sex}">
+                                <option value="0">Male</option>
+                                <option value="1">Female</option>
+                                <option value="2">Unknown</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="password">Password</label>
+                            <input id="password" th:field="*{password}" type="password" placeholder="Leave blank to keep current password">
+                            <div class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="button" type="submit">Save user</button>
+                        <a class="button secondary" th:href="@{/system/users}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

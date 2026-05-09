@@ -15,6 +15,18 @@ public class AdminUserForm {
     @NotBlank(message = "Display name is required")
     private String nickName;
 
+    private String studentNo;
+
+    private String grade;
+
+    private String className;
+
+    private String employeeNo;
+
+    private String title;
+
+    private String deptName;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Email format is invalid")
     private String email;
@@ -51,6 +63,30 @@ public class AdminUserForm {
 
     public void setNickName(String nickName) {
         this.nickName = nickName;
+    }
+
+    public String getStudentNo() {
+        return studentNo;
+    }
+
+    public void setStudentNo(String studentNo) {
+        this.studentNo = studentNo;
+    }
+
+    public String getGrade() {
+        return grade;
+    }
+
+    public void setGrade(String grade) {
+        this.grade = grade;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
     }
 
     public String getEmail() {
@@ -99,5 +135,29 @@ public class AdminUserForm {
 
     public void setRoleKey(String roleKey) {
         this.roleKey = roleKey;
+    }
+
+    public String getEmployeeNo() {
+        return employeeNo;
+    }
+
+    public void setEmployeeNo(String employeeNo) {
+        this.employeeNo = employeeNo;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName;
     }
 }
