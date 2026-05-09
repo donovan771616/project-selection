@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Applications</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title">Applications</h1>
+                    <p class="page-subtitle">Review and manage student applications for your topics.</p>
+                </div>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <form class="panel filters" th:action="@{/teacher/applications}" method="get">
+                <select name="topicId">
+                    <option value="">All topics</option>
+                    <option th:each="topic : ${teacherTopics}" th:value="${topic.topicId}"
+                            th:selected="${topicId != null && topicId == topic.topicId}"
+                            th:text="${topic.title}">Topic</option>
+                </select>
+                <input name="keyword" th:value="${keyword}" placeholder="Student name or topic title">
+                <button class="button" type="submit">Search</button>
+                <a class="button secondary" th:href="@{/teacher/applications}">Reset</a>
+            </form>
+            
+            <div class="tabs">
+                <button class="tab active" id="pending-tab-btn" onclick="showTab('pending')">
+                    Pending Review
+                    <span class="badge accent-amber" th:if="${pendingApplicationsPage != null && pendingApplicationsPage.total > 0}" th:text="${pendingApplicationsPage.total}">0</span>
+                </button>
+                <button class="tab" id="history-tab-btn" onclick="showTab('history')">History</button>
+            </div>
+
+            <div id="pending-tab" class="tab-content">
+                <form th:action="@{/teacher/applications/batch-accept}" method="post" id="batchAcceptForm">
+                    <div class="batch-actions">
+                        <span class="text-muted">Select applications to batch process:</span>
+                        <button class="button small success" type="button" onclick="showBatchAcceptConfirm()">
+                            <iconify-icon icon="lucide:check-circle"></iconify-icon> Batch Accept
+                        </button>
+                        <button class="button small danger" type="button" onclick="submitBatchReject()">
+                            <iconify-icon icon="lucide:x-circle"></iconify-icon> Batch Reject
+                        </button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" onchange="toggleAll(this)"></th>
+                                <th>Topic</th>
+                                <th>Student</th>
+                                <th>Note</th>
+                                <th>Applied</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="app : ${pendingApplicationsPage.rows}">
+                                <td><input type="checkbox" name="applicationIds" th:value="${app.applicationId}"></td>
+                                <td th:text="${app.topicTitle}">Topic</td>
+                                <td th:text="${app.studentName}">Student</td>
+                                <td th:text="${#strings.abbreviate(app.personalNote, 50)}">Note</td>
+                                <td th:text="${app.createTime != null ? #temporals.format(app.createTime, 'yyyy-MM-dd') : '-'}">2024-01-01</td>
+                                <td class="actions">
+                                    <a class="button small secondary" th:href="@{/teacher/applications/{id}(id=${app.applicationId})}">View</a>
+                                    <button class="button small success" type="button" th:onclick="'showAcceptConfirm(' + ${app.applicationId} + ')'">Accept</button>
+                                    <button class="button small danger" type="button" th:onclick="'showRejectConfirm(' + ${app.applicationId} + ')'">Reject</button>
+                                </td>
+                            </tr>
+                            <tr th:if="${pendingApplicationsPage == null || #lists.isEmpty(pendingApplicationsPage.rows)}">
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <p>No pending applications.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                <nav class="pagination" th:if="${pendingApplicationsPage != null && pendingApplicationsPage.totalPages > 1}">
+                    <a class="button small secondary" th:classappend="${!pendingApplicationsPage.hasPrevious} ? ' disabled' : ''"
+                       th:href="@{/teacher/applications(keyword=${keyword}, topicId=${topicId}, sort=${sort}, pendingPage=${pendingApplicationsPage.previousPage})}">Previous</a>
+                    <span th:text="${pendingApplicationsPage.page + ' / ' + pendingApplicationsPage.totalPages}">1 / 1</span>
+                    <a class="button small secondary" th:classappend="${!pendingApplicationsPage.hasNext} ? ' disabled' : ''"
+                       th:href="@{/teacher/applications(keyword=${keyword}, topicId=${topicId}, sort=${sort}, pendingPage=${pendingApplicationsPage.nextPage})}">Next</a>
+                </nav>
+            </div>
+
+            <div id="history-tab" class="tab-content" style="display:none">
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Topic</th>
+                            <th>Student</th>
+                            <th>Status</th>
+                            <th>Reject Reason</th>
+                            <th>Processed</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="app : ${historyApplicationsPage.rows}">
+                            <td th:text="${app.topicTitle}">Topic</td>
+                            <td th:text="${app.studentName}">Student</td>
+                            <td><span class="badge" th:classappend="${app.status}" th:text="${app.status}">Approved</span></td>
+                            <td th:text="${app.status == 'Rejected' ? app.rejectReason : ''}">-</td>
+                            <td th:text="${app.updateTime != null ? #temporals.format(app.updateTime, 'yyyy-MM-dd') : '-'}">2024-01-01</td>
+                            <td class="actions">
+                                <a class="button small secondary" th:href="@{/teacher/applications/{id}(id=${app.applicationId})}">View</a>
+                            </td>
+                        </tr>
+                        <tr th:if="${historyApplicationsPage == null || #lists.isEmpty(historyApplicationsPage.rows)}">
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <p>No history records.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <nav class="pagination" th:if="${historyApplicationsPage != null && historyApplicationsPage.totalPages > 1}">
+                    <a class="button small secondary" th:classappend="${!historyApplicationsPage.hasPrevious} ? ' disabled' : ''"
+                       th:href="@{/teacher/applications(keyword=${keyword}, topicId=${topicId}, sort=${sort}, status=${status}, historyPage=${historyApplicationsPage.previousPage})}">Previous</a>
+                    <span th:text="${historyApplicationsPage.page + ' / ' + historyApplicationsPage.totalPages}">1 / 1</span>
+                    <a class="button small secondary" th:classappend="${!historyApplicationsPage.hasNext} ? ' disabled' : ''"
+                       th:href="@{/teacher/applications(keyword=${keyword}, topicId=${topicId}, sort=${sort}, status=${status}, historyPage=${historyApplicationsPage.nextPage})}">Next</a>
+                </nav>
+            </div>
+
+            <div id="rejectModal" class="modal" hidden>
+                <div class="modal-content">
+                    <h3>Reject Applications</h3>
+                    <form th:action="@{/teacher/applications/batch-reject}" method="post">
+                        <div class="form-group">
+                            <label for="reason">Reason (10-200 characters) *</label>
+                            <textarea id="reason" name="reason" rows="3" required minlength="10" maxlength="200"></textarea>
+                        </div>
+                        <div id="selectedApps"></div>
+                        <div class="form-actions">
+                            <button class="button secondary" type="button" onclick="closeRejectModal()">Cancel</button>
+                            <button class="button danger" type="submit">Reject</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="singleRejectModal" class="modal" hidden>
+                <div class="modal-content">
+                    <h3>Reject Application</h3>
+                    <form action="#" method="post" id="singleRejectForm">
+                        <input type="hidden" id="rejectApplicationId" name="applicationId">
+                        <div class="form-group">
+                            <label for="rejectReason">Reason (10-200 characters) *</label>
+                            <textarea id="rejectReason" name="reason" rows="3" required minlength="10" maxlength="200"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button class="button secondary" type="button" onclick="closeSingleRejectModal()">Cancel</button>
+                            <button class="button danger" type="submit">Reject</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script>
+function getCsrfToken() {
+    var input = document.querySelector('input[name="_csrf"]');
+    return input ? input.value : '';
+}
+function showTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(tab + '-tab').style.display = 'block';
+    event.target.classList.add('active');
+}
+function toggleAll(checkbox) {
+    document.querySelectorAll('input[name="applicationIds"]').forEach(el => el.checked = checkbox.checked);
+}
+function showAcceptConfirm(appId) {
+    openConfirmDialog('Accept Application', 'Accept this application?', function() {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/teacher/applications/' + appId + '/accept';
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_csrf';
+        csrfInput.value = getCsrfToken();
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    }, { icon: 'success' });
+}
+function showRejectConfirm(appId) {
+    document.getElementById('rejectApplicationId').value = appId;
+    document.getElementById('singleRejectForm').action = '/teacher/applications/' + appId + '/reject';
+    document.getElementById('singleRejectModal').hidden = false;
+}
+function closeSingleRejectModal() {
+    document.getElementById('singleRejectModal').hidden = true;
+    document.getElementById('rejectReason').value = '';
+}
+function showBatchAcceptConfirm() {
+    var checked = document.querySelectorAll('input[name="applicationIds"]:checked');
+    if (checked.length === 0) {
+        openConfirmDialog('No Selection', 'Please select at least one application.', null, { icon: 'warning' });
+        return;
+    }
+    openConfirmDialog('Batch Accept', 'Accept ' + checked.length + ' selected application(s)?', function() {
+        document.getElementById('batchAcceptForm').submit();
+    }, { icon: 'success' });
+}
+function submitBatchReject() {
+    var checked = document.querySelectorAll('input[name="applicationIds"]:checked');
+    if (checked.length === 0) {
+        openConfirmDialog('No Selection', 'Please select at least one application.', null, { icon: 'warning' });
+        return;
+    }
+    document.getElementById('rejectModal').hidden = false;
+}
+function closeRejectModal() {
+    document.getElementById('rejectModal').hidden = true;
+}
+</script>
+</body>
+</html>
