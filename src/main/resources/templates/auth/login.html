@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign in - Project Hub</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="auth-page">
+<main class="auth-panel">
+    <h1>Project Hub</h1>
+    <p>Sign in to manage topics, applications, and approvals.</p>
+    <div class="message" th:if="${message}" th:text="${message}"></div>
+    <div class="error" th:if="${param.error}">Invalid username or password.</div>
+    <div class="message" th:if="${param.logout}">You have signed out.</div>
+    <form th:action="@{/login}" method="post">
+        <div class="form-row">
+            <label for="username">Username</label>
+            <input id="username" name="username" autocomplete="username" required>
+        </div>
+        <div class="form-row">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="actions">
+            <button class="button" type="submit">Sign in</button>
+            <a class="button secondary" th:href="@{/register}">Create account</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
