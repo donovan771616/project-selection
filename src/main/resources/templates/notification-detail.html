@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Notification Detail</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title">Notification Detail</h1>
+                </div>
+                <a class="button secondary" th:href="@{/notifications}">Back to Notifications</a>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+
+            <div class="panel" th:if="${notification != null}">
+                <div class="panel-header">
+                    <div class="notification-header">
+                        <div class="notification-type-icon" th:class="${notification.priority == 'HIGH' ? 'priority-high' : ''}">
+                            <iconify-icon th:attr="icon=${notification.type == 'APPLICATION_APPROVED' ? 'solar:check-circle-bold' :
+                                                      notification.type == 'APPLICATION_REJECTED' ? 'solar:x-circle-bold' :
+                                                      notification.type == 'OVERDUE_REMINDER' ? 'solar:danger-triangle-bold' :
+                                                      notification.type == 'CONFIRM_REMINDER' ? 'solar:clock-circle-bold' :
+                                                      'solar:bell-bold'}" aria-hidden="true"></iconify-icon>
+                        </div>
+                        <div>
+                            <h2 th:text="${notification.title}">Notification Title</h2>
+                            <div class="notification-badges">
+                                <span class="badge" th:class="${notification.type}" th:text="${notification.type}">Type</span>
+                                <span class="badge" th:class="${notification.status}" th:text="${notification.status}">Status</span>
+                                <span class="badge priority" th:if="${notification.priority == 'HIGH'}" th:text="${notification.priority}">Priority</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="notification-body">
+                    <p th:text="${notification.content}">Notification content</p>
+                </div>
+
+                <div class="notification-info">
+                    <dl class="detail-list">
+                        <dt>Sender</dt>
+                        <dd th:text="${notification.senderName}">System</dd>
+                        <dt>Created</dt>
+                        <dd th:text="${notification.createTime != null ? #temporals.format(notification.createTime, 'yyyy-MM-dd HH:mm') : '-'}">Time</dd>
+                        <th:block th:if="${notification.confirmationDeadline != null}">
+                            <dt>Confirmation Deadline</dt>
+                            <dd th:text="${#temporals.format(notification.confirmationDeadline, 'yyyy-MM-dd HH:mm')}">Deadline</dd>
+                        </th:block>
+                        <th:block th:if="${notification.relatedId != null}">
+                            <dt>Related ID</dt>
+                            <dd th:text="${notification.relatedId}">ID</dd>
+                        </th:block>
+                    </dl>
+                </div>
+
+                <div class="notification-actions" th:if="${isOwner}">
+                    <form th:if="${notification.requireConfirmation && notification.status == 'PENDING'}"
+                          th:action="@{/notifications/{id}/confirm(id=${notification.notificationId})}" method="post">
+                        <button class="button success" type="submit">Confirm & Acknowledge</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel" th:if="${recipients != null && !#lists.isEmpty(recipients)}">
+                <div class="panel-header">
+                    <h2>Recipients</h2>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Recipient</th>
+                            <th>Status</th>
+                            <th>Read Time</th>
+                            <th>Confirmed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${recipients}">
+                            <td th:text="${r.userName}">User</td>
+                            <td>
+                                <span class="badge" th:class="${r.isRead ? 'read' : 'unread'}"
+                                      th:text="${r.isRead ? 'Read' : 'Unread'}">Status</span>
+                            </td>
+                            <td th:text="${r.readTime != null ? #temporals.format(r.readTime, 'yyyy-MM-dd HH:mm') : '-'}">Time</td>
+                            <td>
+                                <span class="badge" th:class="${r.isConfirmed ? 'confirmed' : 'pending'}"
+                                      th:text="${r.isConfirmed ? 'Confirmed' : 'Pending'}">Confirmed</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel" th:if="${sendLogs != null && !#lists.isEmpty(sendLogs)}">
+                <div class="panel-header">
+                    <h2>Send History</h2>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="log : ${sendLogs}">
+                            <td th:text="${log.sendTime != null ? #temporals.format(log.sendTime, 'yyyy-MM-dd HH:mm') : '-'}">Time</td>
+                            <td th:text="${log.userId}">User ID</td>
+                            <td>
+                                <span class="badge" th:class="${log.sendStatus == 'SUCCESS' ? 'success' : 'failed'}"
+                                      th:text="${log.sendStatus}">Status</span>
+                            </td>
+                            <td th:text="${log.errorMessage != null ? log.errorMessage : '-'}">Message</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" th:if="${notification == null}">
+                <p>Notification not found.</p>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+
+<style>
+.notification-header {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.notification-type-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    color: var(--text-muted);
+}
+.notification-type-icon.priority-high {
+    background: var(--accent-danger-light);
+    color: var(--accent-danger);
+}
+.notification-type-icon iconify-icon {
+    width: 24px;
+    height: 24px;
+}
+.notification-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.notification-body {
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin: 1rem 0;
+    white-space: pre-wrap;
+}
+.notification-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+.badge.APPLICATION_APPROVED { background: var(--accent-success-bg); color: var(--accent-success); }
+.badge.APPLICATION_REJECTED { background: var(--accent-danger-bg); color: var(--accent-danger); }
+.badge.OVERDUE_REMINDER, .badge.CONFIRM_REMINDER { background: var(--accent-warning-bg); color: var(--accent-warning); }
+.badge.REVIEW_REMINDER { background: var(--accent-info-bg); color: var(--accent-info); }
+.badge.PUSH_FAILED { background: var(--accent-danger-bg); color: var(--accent-danger); }
+.badge.PENDING { background: var(--accent-warning-bg); color: var(--accent-warning); }
+.badge.CONFIRMED, .badge.SIGNED { background: var(--accent-success-bg); color: var(--accent-success); }
+.badge.EXPIRED { background: var(--bg-secondary); color: var(--text-muted); }
+.badge.HIGH { background: var(--accent-danger-bg); color: var(--accent-danger); }
+.badge.success { background: var(--accent-success-bg); color: var(--accent-success); }
+.badge.failed { background: var(--accent-danger-bg); color: var(--accent-danger); }
+.badge.read { background: var(--accent-success-bg); color: var(--accent-success); }
+.badge.unread { background: var(--accent-warning-bg); color: var(--accent-warning); }
+.badge.confirmed { background: var(--accent-success-bg); color: var(--accent-success); }
+.badge.pending { background: var(--accent-warning-bg); color: var(--accent-warning); }
+</style>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Notifications</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title">Notifications</h1>
+                    <p class="page-subtitle">View and manage your notifications.</p>
+                </div>
+                <div class="actions">
+                    <button class="button secondary" onclick="markAllRead()">Mark all as read</button>
+                </div>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+
+            <form class="panel filters" th:action="@{/notifications}" method="get">
+                <select name="type">
+                    <option value="">All types</option>
+                    <option value="APPLICATION_APPROVED" th:selected="${type == 'APPLICATION_APPROVED'}">Approved</option>
+                    <option value="APPLICATION_REJECTED" th:selected="${type == 'APPLICATION_REJECTED'}">Rejected</option>
+                    <option value="CONFIRM_REMINDER" th:selected="${type == 'CONFIRM_REMINDER'}">Confirm Reminder</option>
+                    <option value="OVERDUE_REMINDER" th:selected="${type == 'OVERDUE_REMINDER'}">Overdue Reminder</option>
+                    <option value="REVIEW_REMINDER" th:selected="${type == 'REVIEW_REMINDER'}">Review Reminder</option>
+                    <option value="PUSH_FAILED" th:selected="${type == 'PUSH_FAILED'}">Push Failed</option>
+                </select>
+                <select name="status">
+                    <option value="">All status</option>
+                    <option value="PENDING" th:selected="${status == 'PENDING'}">Pending</option>
+                    <option value="CONFIRMED" th:selected="${status == 'CONFIRMED'}">Confirmed</option>
+                    <option value="SIGNED" th:selected="${status == 'SIGNED'}">Signed</option>
+                    <option value="EXPIRED" th:selected="${status == 'EXPIRED'}">Expired</option>
+                </select>
+                <input name="keyword" th:value="${keyword}" placeholder="Search title or content">
+                <button class="button" type="submit">Search</button>
+                <a class="button secondary" th:href="@{/notifications}">Reset</a>
+            </form>
+
+            <div class="panel">
+                <div th:replace="this :: notification-list(${notificationsPage.rows})"></div>
+                <nav class="pagination" th:if="${notificationsPage != null && notificationsPage.totalPages > 1}">
+                    <a class="button small secondary" th:classappend="${!notificationsPage.hasPrevious} ? ' disabled' : ''"
+                       th:href="@{/notifications(type=${type}, status=${status}, keyword=${keyword}, page=${notificationsPage.previousPage})}">Previous</a>
+                    <span th:text="${notificationsPage.page + ' / ' + notificationsPage.totalPages}">1 / 1</span>
+                    <a class="button small secondary" th:classappend="${!notificationsPage.hasNext} ? ' disabled' : ''"
+                       th:href="@{/notifications(type=${type}, status=${status}, keyword=${keyword}, page=${notificationsPage.nextPage})}">Next</a>
+                </nav>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script>
+function markAllRead() {
+    openConfirmDialog('Mark All Read', 'Mark all notifications as read?', function() {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/notifications/read-all';
+        document.body.appendChild(form);
+        form.submit();
+    }, { icon: 'success' });
+}
+
+function deleteNotification(id) {
+    openConfirmDialog('Delete Notification', 'Are you sure you want to delete this notification?', function() {
+        fetch('/notifications/' + id + '/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        }).then(function(response) {
+            return response.json();
+        }).then(function(data) {
+            if (data.success) {
+                var item = document.querySelector('.notif-card[data-id="' + id + '"]');
+                if (item) {
+                    item.style.transition = 'all 0.3s ease';
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(20px)';
+                    setTimeout(function() {
+                        item.remove();
+                        checkEmpty();
+                    }, 300);
+                }
+            }
+        }).catch(function() {
+            alert('Failed to delete notification');
+        });
+    }, { icon: 'danger' });
+}
+
+function checkEmpty() {
+    var list = document.querySelector('.notif-card-list');
+    if (list && list.children.length === 0) {
+        var container = document.querySelector('.notification-list');
+        if (container) {
+            container.innerHTML = '<div class="empty-state"><p>No notifications found.</p></div>';
+        }
+    }
+}
+</script>
+
+<div th:fragment="notification-list(notifications)">
+    <div class="notification-list">
+        <th:block th:if="${notifications == null || #lists.isEmpty(notifications)}">
+            <div class="empty-state"><p>No notifications found.</p></div>
+        </th:block>
+        <th:block th:each="notif : ${notifications}">
+            <div class="notif-card" th:data-id="${notif.notificationId}">
+                <div class="notif-icon-wrap">
+                    <div class="notif-icon" th:class="${notif.priority == 'HIGH'} ? 'notif-icon-high' : ''">
+                        <iconify-icon th:attr="icon=${notif.type == 'APPLICATION_APPROVED' ? 'solar:check-circle-bold' :
+                                                  notif.type == 'APPLICATION_REJECTED' ? 'solar:x-circle-bold' :
+                                                  notif.type == 'OVERDUE_REMINDER' ? 'solar:danger-triangle-bold' :
+                                                  notif.type == 'CONFIRM_REMINDER' ? 'solar:clock-circle-bold' :
+                                                  'solar:bell-bold'}" aria-hidden="true"></iconify-icon>
+                    </div>
+                </div>
+                <a class="notif-body" th:href="@{/notifications/{id}(id=${notif.notificationId})}">
+                    <div class="notif-main">
+                        <span class="notif-title" th:text="${notif.title}">Title</span>
+                        <iconify-icon class="notif-arrow" icon="mdi:chevron-right" aria-hidden="true"></iconify-icon>
+                    </div>
+                    <p class="notif-preview" th:text="${#strings.abbreviate(notif.content, 120)}">Content preview...</p>
+                    <div class="notif-meta">
+                        <span class="notif-time" th:text="${notif.createTime != null ? #temporals.format(notif.createTime, 'MMM dd, yyyy HH:mm') : '-'}">Time</span>
+                    </div>
+                </a>
+                <div class="notif-actions">
+                    <button class="notif-delete-btn" th:onclick="'deleteNotification(' + ${notif.notificationId} + ')'" title="Delete" type="button">
+                        <iconify-icon icon="solar:trash-bin-trash-bold" aria-hidden="true"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+        </th:block>
+    </div>
+</div>
+
+<style>
+.notification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.notif-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+.notif-card:hover {
+    background: var(--bg-tertiary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.notif-icon-wrap {
+    flex-shrink: 0;
+}
+.notif-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-radius: 14px;
+}
+.notif-icon.notif-icon-high {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+.notif-icon iconify-icon {
+    width: 24px;
+    height: 24px;
+}
+.notif-body {
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.notif-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+.notif-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    transition: color 0.15s;
+}
+.notif-arrow {
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all 0.15s;
+}
+.notif-card:hover .notif-title {
+    color: var(--accent-primary);
+}
+.notif-card:hover .notif-arrow {
+    opacity: 1;
+    transform: translateX(0);
+    color: var(--accent-primary);
+}
+.notif-preview {
+    margin: 0 0 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.notif-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.notif-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.notif-actions {
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.notif-card:hover .notif-actions {
+    opacity: 1;
+}
+.notif-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.notif-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+.notif-delete-btn iconify-icon {
+    width: 18px;
+    height: 18px;
+}
+.empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+</style>
+</body>
+</html>
