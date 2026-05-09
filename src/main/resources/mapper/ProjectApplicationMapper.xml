@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cpt202.projectselection.mapper.ProjectApplicationMapper">
+    <resultMap id="ProjectApplicationResult" type="ProjectApplication">
+        <id property="applicationId" column="application_id"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="topicTitle" column="topic_title"/>
+        <result property="topicDescription" column="topic_description"/>
+        <result property="topicSkills" column="topic_skills"/>
+        <result property="topicCategoryName" column="topic_category_name"/>
+        <result property="topicStatus" column="topic_status"/>
+        <result property="teacherId" column="teacher_id"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="studentEmail" column="student_email"/>
+        <result property="personalNote" column="personal_note"/>
+        <result property="status" column="status"/>
+        <result property="rejectReason" column="reject_reason"/>
+        <result property="rejectBy" column="reject_by"/>
+        <result property="rejectTime" column="reject_time"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="ApplicationOrderClause">
+        <choose>
+            <when test="sort == 'oldest'">order by a.create_time asc</when>
+            <when test="sort == 'student'">order by u.nick_name asc, a.create_time desc</when>
+            <when test="sort == 'topic'">order by t.title asc, a.create_time desc</when>
+            <when test="sort == 'status'">order by a.status asc, a.create_time desc</when>
+            <otherwise>order by a.create_time desc</otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectApplicationById" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id,
+               coalesce(t.title, '') as topic_title,
+               coalesce(cast(t.description as char(10000) character set utf8mb4), '') as topic_description,
+               coalesce(t.skills, '') as topic_skills,
+               coalesce(c.category_name, '') as topic_category_name,
+               coalesce(t.status, '') as topic_status,
+               t.teacher_id,
+               coalesce(tu.nick_name, '') as teacher_name,
+               a.student_id,
+               coalesce(u.nick_name, '') as student_name,
+               coalesce(u.email, '') as student_email,
+               coalesce(a.personal_note, '') as personal_note,
+               a.status,
+               coalesce(a.reject_reason, '') as reject_reason,
+               a.reject_by, a.reject_time, a.del_flag,
+               a.create_time, a.update_time
+        from project_application a
+        left join project_topic t on t.topic_id = a.topic_id and t.del_flag = '0'
+        left join project_category c on c.category_id = t.category_id and c.del_flag = '0'
+        left join sys_user tu on tu.user_id = t.teacher_id
+        left join sys_user u on u.user_id = a.student_id
+        where a.application_id = #{applicationId} and a.del_flag = '0'
+    </select>
+
+    <select id="selectPendingByTeacherId" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where t.teacher_id = #{teacherId} and a.status = 'Pending' and a.del_flag = '0'
+        order by a.create_time desc
+    </select>
+
+    <select id="selectPendingByTeacherIdPaged" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, t.teacher_id, a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where t.teacher_id = #{teacherId} and a.status = 'Pending' and a.del_flag = '0'
+        <if test="topicId != null">
+            and t.topic_id = #{topicId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+        <include refid="ApplicationOrderClause"/>
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countPendingByTeacherIdFiltered" resultType="int">
+        select count(1)
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where t.teacher_id = #{teacherId} and a.status = 'Pending' and a.del_flag = '0'
+        <if test="topicId != null">
+            and t.topic_id = #{topicId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+    </select>
+
+    <select id="selectHistoryByTeacherId" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where t.teacher_id = #{teacherId}
+          and a.status in ('Approved', 'Rejected', 'Withdrawn')
+          and a.del_flag = '0'
+        order by a.create_time desc
+    </select>
+
+    <select id="selectHistoryByTeacherIdPaged" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, t.teacher_id, a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where t.teacher_id = #{teacherId}
+          and a.status in ('Approved', 'Rejected', 'Withdrawn')
+          and a.del_flag = '0'
+        <if test="topicId != null">
+            and t.topic_id = #{topicId}
+        </if>
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+        <include refid="ApplicationOrderClause"/>
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countHistoryByTeacherIdFiltered" resultType="int">
+        select count(1)
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where t.teacher_id = #{teacherId}
+          and a.status in ('Approved', 'Rejected', 'Withdrawn')
+          and a.del_flag = '0'
+        <if test="topicId != null">
+            and t.topic_id = #{topicId}
+        </if>
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+    </select>
+
+    <select id="selectAllApplications" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where a.del_flag = '0'
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%'))
+        </if>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectAllApplicationsPaged" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, t.teacher_id, tu.nick_name as teacher_name,
+               a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user tu on tu.user_id = t.teacher_id
+        inner join sys_user u on u.user_id = a.student_id
+        where a.del_flag = '0'
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(tu.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+        <include refid="ApplicationOrderClause"/>
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countAllApplicationsFiltered" resultType="int">
+        select count(1)
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user tu on tu.user_id = t.teacher_id
+        inner join sys_user u on u.user_id = a.student_id
+        where a.del_flag = '0'
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(u.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(tu.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+    </select>
+
+    <select id="selectHistoryByStudentId" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user u on u.user_id = a.student_id
+        where a.student_id = #{studentId} and a.del_flag = '0'
+        order by a.create_time desc
+    </select>
+
+    <select id="selectHistoryByStudentIdPaged" resultMap="ProjectApplicationResult">
+        select a.application_id, a.topic_id, t.title as topic_title, t.teacher_id, tu.nick_name as teacher_name,
+               a.student_id, u.nick_name as student_name,
+               a.personal_note, a.status, a.reject_reason, a.reject_by, a.reject_time, a.del_flag, a.create_time
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user tu on tu.user_id = t.teacher_id
+        inner join sys_user u on u.user_id = a.student_id
+        where a.student_id = #{studentId} and a.del_flag = '0'
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(tu.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+        <include refid="ApplicationOrderClause"/>
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="countHistoryByStudentIdFiltered" resultType="int">
+        select count(1)
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        inner join sys_user tu on tu.user_id = t.teacher_id
+        where a.student_id = #{studentId} and a.del_flag = '0'
+        <if test="status != null and status != ''">
+            and a.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            and (lower(t.title) like concat('%', lower(#{keyword}), '%')
+                 or lower(tu.nick_name) like concat('%', lower(#{keyword}), '%')
+                 or lower(a.personal_note) like concat('%', lower(#{keyword}), '%'))
+        </if>
+    </select>
+
+    <insert id="insertApplication" useGeneratedKeys="true" keyProperty="applicationId">
+        insert into project_application (topic_id, student_id, personal_note, status, del_flag, create_by, create_time)
+        values (#{topicId}, #{studentId}, #{personalNote}, #{status}, '0', #{createBy}, now())
+    </insert>
+
+    <select id="countActiveApplicationByTopicAndStudent" resultType="int">
+        select count(1)
+        from project_application
+        where topic_id = #{topicId}
+          and student_id = #{studentId}
+          and status in ('Pending', 'Approved')
+          and del_flag = '0'
+    </select>
+
+    <select id="countAgreedByStudentId" resultType="int">
+        select count(1)
+        from project_application
+        where student_id = #{studentId} and status = 'Approved' and del_flag = '0'
+    </select>
+
+    <select id="countPendingByStudentId" resultType="int">
+        select count(1)
+        from project_application
+        where student_id = #{studentId} and status = 'Pending' and del_flag = '0'
+    </select>
+
+    <select id="countPendingByTopicId" resultType="int">
+        select count(1)
+        from project_application
+        where topic_id = #{topicId} and status = 'Pending' and del_flag = '0'
+    </select>
+
+    <select id="countAcceptedByTopicId" resultType="int">
+        select count(1)
+        from project_application
+        where topic_id = #{topicId} and status = 'Approved' and del_flag = '0'
+    </select>
+
+    <update id="acceptApplication">
+        update project_application
+        set status = 'Approved', update_by = #{updateBy}, update_time = now()
+        where application_id = #{applicationId} and status = 'Pending' and del_flag = '0'
+    </update>
+
+    <update id="rejectApplication">
+        update project_application
+        set status = 'Rejected',
+            reject_reason = #{reason},
+            reject_by = #{rejectBy},
+            reject_time = now(),
+            update_by = #{updateBy},
+            update_time = now()
+        where application_id = #{applicationId} and status = 'Pending' and del_flag = '0'
+    </update>
+
+    <update id="withdrawApplication">
+        update project_application
+        set status = 'Withdrawn', update_by = #{updateBy}, update_time = now()
+        where application_id = #{applicationId}
+          and student_id = #{studentId}
+          and status = 'Pending'
+          and del_flag = '0'
+    </update>
+
+    <update id="rejectOtherPendingApplications">
+        update project_application
+        set status = 'Rejected',
+            reject_reason = #{reason},
+            reject_by = #{rejectBy},
+            reject_time = now(),
+            update_by = #{updateBy},
+            update_time = now()
+        where student_id = #{studentId}
+          and application_id != #{acceptedApplicationId}
+          and status = 'Pending'
+          and del_flag = '0'
+    </update>
+
+    <select id="countApplicationsByStatus" resultType="int">
+        select count(1) from project_application where status = #{status} and del_flag = '0'
+    </select>
+
+    <select id="countTopicsByStatus" resultType="int">
+        select count(1) from project_topic where status = #{status} and del_flag = '0'
+    </select>
+
+    <select id="countStudentsWithAcceptedTopic" resultType="int">
+        select count(distinct student_id)
+        from project_application
+        where status = 'Approved' and del_flag = '0'
+    </select>
+
+    <select id="countStudentsWithoutAcceptedTopic" resultType="int">
+        select count(1)
+        from sys_user u
+        inner join sys_user_role ur on ur.user_id = u.user_id
+        inner join sys_role r on r.role_id = ur.role_id and r.role_key = 'student'
+        where u.del_flag = '0'
+          and not exists (
+              select 1 from project_application a
+              where a.student_id = u.user_id and a.status = 'Approved' and a.del_flag = '0'
+          )
+    </select>
+
+    <select id="selectTopicStatusCounts" resultType="StatItem">
+        select status as label, count(1) as value
+        from project_topic
+        where del_flag = '0'
+        group by status
+    </select>
+
+    <select id="selectApplicationStatusCounts" resultType="StatItem">
+        select status as label, count(1) as value
+        from project_application
+        where del_flag = '0'
+        group by status
+    </select>
+
+    <select id="selectTopicCountByCategory" resultType="StatItem">
+        select coalesce(c.category_name, 'Uncategorized') as label, count(t.topic_id) as value
+        from project_topic t
+        left join project_category c on c.category_id = t.category_id
+        where t.del_flag = '0'
+        group by coalesce(c.category_name, 'Uncategorized')
+        order by value desc, label asc
+    </select>
+
+    <select id="selectTeacherTopicRanking" resultType="StatItem">
+        select coalesce(u.nick_name, u.user_name, 'Unknown') as label, count(t.topic_id) as value
+        from project_topic t
+        left join sys_user u on u.user_id = t.teacher_id
+        where t.del_flag = '0'
+        group by coalesce(u.nick_name, u.user_name, 'Unknown')
+        order by value desc, label asc
+        limit 10
+    </select>
+
+    <select id="selectPopularTopicRanking" resultType="StatItem">
+        select t.title as label, count(a.application_id) as value
+        from project_topic t
+        inner join project_application a on a.topic_id = t.topic_id and a.del_flag = '0'
+        where t.del_flag = '0'
+        group by t.topic_id, t.title
+        order by value desc, t.create_time desc
+        limit 10
+    </select>
+
+    <select id="selectTeacherTopicStatusCounts" resultType="StatItem">
+        select status as label, count(1) as value
+        from project_topic
+        where teacher_id = #{teacherId} and del_flag = '0'
+        group by status
+    </select>
+
+    <select id="selectTeacherApplicationStatusCounts" resultType="StatItem">
+        select a.status as label, count(1) as value
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        where t.teacher_id = #{teacherId} and a.del_flag = '0'
+        group by a.status
+    </select>
+
+    <select id="selectStudentApplicationStatusCounts" resultType="StatItem">
+        select status as label, count(1) as value
+        from project_application
+        where student_id = #{studentId} and del_flag = '0'
+        group by status
+    </select>
+
+    <select id="countVisibleTopics" resultType="int">
+        select count(1)
+        from project_topic
+        where del_flag = '0' and status = 'Open'
+    </select>
+
+    <select id="countTeacherPendingApplications" resultType="int">
+        select count(1)
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        where t.teacher_id = #{teacherId} and a.status = 'Pending' and a.del_flag = '0'
+    </select>
+
+    <select id="countTeacherAcceptedApplications" resultType="int">
+        select count(1)
+        from project_application a
+        inner join project_topic t on t.topic_id = a.topic_id
+        where t.teacher_id = #{teacherId} and a.status = 'Approved' and a.del_flag = '0'
+    </select>
+
+    <select id="selectPendingCountByTeacherTopics" resultType="StatItem">
+        select t.topic_id as label, count(a.application_id) as value
+        from project_topic t
+        left join project_application a on a.topic_id = t.topic_id and a.status = 'Pending' and a.del_flag = '0'
+        where t.teacher_id = #{teacherId} and t.del_flag = '0'
+        group by t.topic_id
+    </select>
+
+    <update id="deleteApplication">
+        update project_application
+        set del_flag = '1', update_by = #{updateBy}, update_time = now()
+        where application_id = #{applicationId} and del_flag = '0'
+    </update>
+</mapper>
