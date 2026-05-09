@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Categories</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <h1 class="page-title">Categories</h1>
+            <p class="page-subtitle">Maintain the topic taxonomy used by teachers and students.</p>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <div class="panel">
+                <div class="panel-header"><h2 th:text="${categoryForm.categoryId == null ? 'New category' : 'Edit category'}">Category</h2></div>
+                <form th:object="${categoryForm}"
+                      th:action="${categoryForm.categoryId == null ? '/project/categories' : '/project/categories/' + categoryForm.categoryId + '/edit'}"
+                      method="post">
+                    <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label for="categoryName">Name</label>
+                            <input id="categoryName" th:field="*{categoryName}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="parentId">Parent</label>
+                            <select id="parentId" th:field="*{parentId}">
+                                <option value="0">Root category</option>
+                                <option th:each="item : ${categoryTree}"
+                                        th:if="${categoryForm.categoryId == null || item.category.categoryId != categoryForm.categoryId}"
+                                        th:value="${item.category.categoryId}"
+                                        th:text="${item.category.categoryName}">Category</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="orderNum">Order</label>
+                            <input id="orderNum" th:field="*{orderNum}" type="number" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="status">Status</label>
+                            <select id="status" th:field="*{status}">
+                                <option value="0">Active</option>
+                                <option value="1">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="button" type="submit">Save category</button>
+                        <a class="button secondary" th:href="@{/project/categories}">Clear</a>
+                    </div>
+                </form>
+            </div>
+            <div class="category-tree panel">
+                <div class="panel-header"><h2>Category tree</h2></div>
+                <div class="category-node root-node">Root category</div>
+                <div class="category-node" th:each="item : ${categoryTree}" th:style="'--depth:' + ${item.depth}">
+                    <div>
+                        <strong th:text="${item.category.categoryName}">Category</strong>
+                        <span class="badge" th:text="${item.category.status == '0' ? 'Active' : 'Disabled'}">Active</span>
+                    </div>
+                    <div class="actions">
+                        <span class="muted" th:text="'Order ' + ${item.category.orderNum}">Order</span>
+                        <a class="button small secondary" th:href="@{/project/categories/{id}/edit(id=${item.category.categoryId})}">Edit</a>
+                        <form th:action="@{/project/categories/{id}/delete(id=${item.category.categoryId})}" method="post" th:id="'deleteForm' + ${item.category.categoryId}">
+                            <button class="button small danger" type="button" th:onclick="'showDeleteConfirm(' + ${item.category.categoryId} + ')'">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="empty-state" th:if="${categoryTree == null || #lists.isEmpty(categoryTree)}">No categories yet.</div>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script th:inline="javascript">
+function showDeleteConfirm(categoryId) {
+    openConfirmDialog('Delete Category', 'Delete this category? Topics using it will block deletion.', function() {
+        document.getElementById('deleteForm' + categoryId).submit();
+    }, { icon: 'danger', danger: true });
+}
+</script>
+</body>
+</html>

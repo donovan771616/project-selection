@@ -33,7 +33,7 @@
             <div class="table-wrap">
                 <table class="table">
                     <thead>
-                    <tr><th>ID</th><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+                    <tr><th>ID</th><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Email</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                     <tr th:each="user : ${users}">
@@ -43,6 +43,7 @@
                         <td th:text="${user.email}">email</td>
                         <td th:text="${#strings.listJoin(user.roles.![roleKey], ', ')}">role</td>
                         <td><span class="badge" th:text="${user.status == '0' ? 'Active' : 'Disabled'}">Active</span></td>
+                        <td><span class="badge" th:text="${user.emailActivated == '0' ? 'Pending' : 'Activated'}">Activated</span></td>
                         <td><a class="button small secondary" th:href="@{/system/users/{id}/edit(id=${user.userId})}">Edit</a></td>
                     </tr>
                     </tbody>

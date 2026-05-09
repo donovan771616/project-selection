@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>All Applications</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title">All Applications</h1>
+                    <p class="page-subtitle">View and manage all student applications in the system.</p>
+                </div>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <form class="panel filters" th:action="@{/admin/applications}" method="get">
+                <input name="keyword" th:value="${keyword}" placeholder="Student name or topic title">
+                <select name="status">
+                    <option value="">All status</option>
+                    <option value="Pending" th:selected="${status == 'Pending'}">Pending</option>
+                    <option value="Approved" th:selected="${status == 'Approved'}">Approved</option>
+                    <option value="Rejected" th:selected="${status == 'Rejected'}">Rejected</option>
+                    <option value="Withdrawn" th:selected="${status == 'Withdrawn'}">Withdrawn</option>
+                </select>
+                <button class="button" type="submit">Search</button>
+                <a class="button secondary" th:href="@{/admin/applications}">Reset</a>
+            </form>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Topic</th>
+                        <th>Supervisor</th>
+                        <th>Status</th>
+                        <th>Applied</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="app : ${applicationsPage.rows}">
+                        <td th:text="${app.studentName}">Student</td>
+                        <td th:text="${app.topicTitle}">Topic</td>
+                        <td th:text="${app.teacherName}">Supervisor</td>
+                        <td><span th:class="|badge ${app.status}|" th:text="${app.status}">Pending</span></td>
+                        <td th:text="${app.createTime != null ? #temporals.format(app.createTime, 'yyyy-MM-dd') : '-'}">2024-01-01</td>
+                        <td class="actions">
+                            <a class="button small secondary" th:href="@{/project/applications/{id}(id=${app.applicationId})}">View</a>
+                            <button class="button small danger" type="button"
+                                    th:onclick="|showDeleteConfirm(${app.applicationId})|">Delete</button>
+                        </td>
+                    </tr>
+                    <tr th:if="${applicationsPage == null || #lists.isEmpty(applicationsPage.rows)}">
+                        <td colspan="6">No applications found.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav class="pagination" th:if="${applicationsPage.totalPages > 1}">
+                <a class="button small secondary" th:classappend="${!applicationsPage.hasPrevious} ? ' disabled' : ''"
+                   th:href="@{/admin/applications(status=${status}, keyword=${keyword}, sort=${sort}, page=${applicationsPage.previousPage})}">Previous</a>
+                <span th:text="${applicationsPage.page + ' / ' + applicationsPage.totalPages}">1 / 1</span>
+                <a class="button small secondary" th:classappend="${!applicationsPage.hasNext} ? ' disabled' : ''"
+                   th:href="@{/admin/applications(status=${status}, keyword=${keyword}, sort=${sort}, page=${applicationsPage.nextPage})}">Next</a>
+            </nav>
+        </section>
+    </main>
+</div>
+<div th:replace="fragments/layout :: confirm-dialog"></div>
+<script th:replace="fragments/layout :: csrf-token"></script>
+<script th:replace="fragments/layout :: confirm-dialog-script"></script>
+<script>
+function getCsrfToken() {
+    var input = document.querySelector('input[name="_csrf"]');
+    return input ? input.value : '';
+}
+function showDeleteConfirm(appId) {
+    openConfirmDialog('Delete Application', 'This will permanently delete this application. This action cannot be undone. Continue?', function() {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/applications/' + appId + '/delete';
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_csrf';
+        csrfInput.value = getCsrfToken();
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    }, { icon: 'danger', danger: true });
+}
+</script>
+</body>
+</html>
