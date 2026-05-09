@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Form</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <div class="panel-header">
+                <div>
+                    <h1 class="page-title" th:text="${topicForm.topicId != null} ? 'Edit Topic' : 'New Topic'">New Topic</h1>
+                    <p class="page-subtitle">Fill in the topic details. The topic will be saved as draft.</p>
+                </div>
+                <button type="button" class="button secondary" id="randomFillBtn" th:if="${topicForm.topicId == null}">
+                    <span>🎲 Random Fill</span>
+                </button>
+            </div>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="error" th:if="${error}" th:text="${error}"></div>
+            <form class="panel form" th:action="${topicForm.topicId != null} ? @{/teacher/topics/{id}/edit(id=${topicForm.topicId})} : @{/teacher/topics}" th:object="${topicForm}" method="post">
+                <div class="form-group">
+                    <label for="title">Title *</label>
+                    <input type="text" id="title" th:field="*{title}" required>
+                    <span class="error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></span>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" th:field="*{description}" rows="5" required></textarea>
+                    <span class="error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></span>
+                </div>
+                <div class="form-group">
+                    <label for="skills">Skills Required</label>
+                    <input type="text" id="skills" th:field="*{skills}" placeholder="e.g., Java, Spring Boot, MySQL">
+                </div>
+                <div class="form-group">
+                    <label for="keywords">Keywords</label>
+                    <input type="text" id="keywords" th:field="*{keywords}" placeholder="e.g., web development, backend">
+                </div>
+                <div class="form-group">
+                    <label for="categoryId">Category</label>
+                    <select id="categoryId" th:field="*{categoryId}">
+                        <option value="">Select category</option>
+                        <option th:each="category : ${categories}" th:value="${category.categoryId}" th:text="${category.categoryName}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="maxStudents">Max Students</label>
+                    <input type="number" id="maxStudents" th:field="*{maxStudents}" min="1" max="10">
+                </div>
+                <div class="form-actions">
+                    <a class="button secondary" th:href="@{/teacher/topics}">Cancel</a>
+                    <button class="button" type="submit">Save Draft</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+<script th:inline="javascript">
+    (function() {
+        var topicTitles = [
+            "Intelligent Recommendation System Based on Machine Learning",
+            "Cross-platform Mobile Application Development",
+            "Distributed Microservices Architecture Design",
+            "Real-time Data Visualization Platform",
+            "Natural Language Processing Chatbot",
+            "Blockchain-based Supply Chain Management",
+            "IoT Smart Home Control System",
+            "Deep Learning Image Recognition Application",
+            "Cloud-native Container Orchestration Platform",
+            "Big Data Analytics Dashboard"
+        ];
+
+        var descriptions = [
+            "This project aims to develop an innovative solution that addresses real-world challenges in the field of computer science. Students will work on designing, implementing, and testing a complete software system using modern development practices and technologies. The project requires strong programming skills and the ability to work independently as well as collaboratively.",
+            "The objective of this project is to create a scalable and maintainable application that can handle real-world usage scenarios. Students will learn about software architecture, design patterns, and best practices in software engineering. The project involves both frontend and backend development.",
+            "This research-oriented project focuses on exploring cutting-edge technologies and applying them to solve practical problems. Students will conduct literature reviews, design experiments, and implement prototypes. The project requires analytical thinking and problem-solving skills."
+        ];
+
+        var skillSets = [
+            "Java, Spring Boot, MySQL, REST API",
+            "Python, Django, PostgreSQL, Docker",
+            "JavaScript, React, Node.js, MongoDB",
+            "TypeScript, Angular, Express, Redis",
+            "Go, Kubernetes, AWS, Terraform",
+            "Python, TensorFlow, PyTorch, NumPy",
+            "Java, Android, Kotlin, Firebase",
+            "Swift, iOS, Core Data, SwiftUI",
+            "C++, Qt, OpenGL, CUDA",
+            "Rust, WebAssembly, React, PostgreSQL"
+        ];
+
+        var keywordSets = [
+            "machine learning, AI, data science",
+            "web development, full-stack, REST API",
+            "mobile app, cross-platform, UX design",
+            "cloud computing, DevOps, microservices",
+            "blockchain, cryptocurrency, smart contracts",
+            "IoT, embedded systems, sensors",
+            "big data, analytics, visualization",
+            "security, cryptography, authentication",
+            "game development, graphics, simulation",
+            "NLP, chatbot, text processing"
+        ];
+
+        var randomFillBtn = document.getElementById('randomFillBtn');
+        if (randomFillBtn) {
+            randomFillBtn.addEventListener('click', function() {
+                document.getElementById('title').value = topicTitles[Math.floor(Math.random() * topicTitles.length)];
+                document.getElementById('description').value = descriptions[Math.floor(Math.random() * descriptions.length)];
+                document.getElementById('skills').value = skillSets[Math.floor(Math.random() * skillSets.length)];
+                document.getElementById('keywords').value = keywordSets[Math.floor(Math.random() * keywordSets.length)];
+                
+                var categorySelect = document.getElementById('categoryId');
+                var options = categorySelect.querySelectorAll('option:not([value=""])');
+                if (options.length > 0) {
+                    var randomOption = options[Math.floor(Math.random() * options.length)];
+                    categorySelect.value = randomOption.value;
+                }
+                
+                document.getElementById('maxStudents').value = Math.floor(Math.random() * 3) + 1;
+            });
+        }
+    })();
+</script>
+</body>
+</html>

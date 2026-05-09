@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="fragments/layout :: sidebar"></aside>
+    <main class="main">
+        <header th:replace="fragments/layout :: topbar"></header>
+        <section class="content">
+            <h1 class="page-title">Profile</h1>
+            <p class="page-subtitle">Maintain your contact information and password.</p>
+            <div class="message" th:if="${success}" th:text="${success}"></div>
+            <div class="panel">
+                <form th:action="@{/profile}" th:object="${profileForm}" method="post">
+                    <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label for="nickName">Display name</label>
+                            <input id="nickName" th:field="*{nickName}" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="email">Email</label>
+                            <input id="email" th:field="*{email}" type="email" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="phonenumber">Phone</label>
+                            <input id="phonenumber" th:field="*{phonenumber}">
+                        </div>
+                        <div class="form-row">
+                            <label for="sex">Gender</label>
+                            <select id="sex" th:field="*{sex}">
+                                <option value="0">Male</option>
+                                <option value="1">Female</option>
+                                <option value="2">Unknown</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="oldPassword">Old password</label>
+                            <input id="oldPassword" th:field="*{oldPassword}" type="password">
+                        </div>
+                        <div class="form-row">
+                            <label for="newPassword">New password</label>
+                            <input id="newPassword" th:field="*{newPassword}" type="password">
+                        </div>
+                    </div>
+                    <button class="button" type="submit">Save profile</button>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
